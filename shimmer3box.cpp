@@ -3,15 +3,15 @@
 
 Shimmer3Box::Shimmer3Box()
 {
-  w = 0.034*0.5;// along X
-  h = 0.051*0.5;// along Y
-  d = 0.014*0.5;// along Z
+  w = 1.0;// along X
+  h = 1.0;// along Y
+  d = 1.0;// along Z
   pos[0] = 0.0;
   pos[1] = 0.0;
   pos[2] = 0.0;
-  angle  = 0.0;
+  angle  = 90.0;
   x      = 0.0;
-  y      = 0.0;
+  y      = 1.0;
   z      = 0.0;
 }
 

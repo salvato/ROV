@@ -43,20 +43,28 @@
 
 #include <QGLFunctions>
 #include <QGLShaderProgram>
+#include <QOpenGLBuffer>
 
 class GeometryEngine : protected QGLFunctions
 {
 public:
-    GeometryEngine();
-    virtual ~GeometryEngine();
+  GeometryEngine();
+  virtual ~GeometryEngine();
 
-    void init();
-    void drawCubeGeometry(QGLShaderProgram *program);
+  void init();
+  void drawROVGeometry(QGLShaderProgram *program);
 
 private:
-    void initCubeGeometry();
+  bool loadROVobj(QString path, QVector<QVector3D>& out_vertices, QVector<QVector2D>& out_uvs, QVector<QVector3D>& out_normals);
+  void initROVGeometry();
 
-    GLuint vboIds[2];
+  QOpenGLBuffer vertexbuffer;
+  QOpenGLBuffer uvbuffer;
+  QOpenGLBuffer normalbuffer;
+
+  QVector<QVector3D> vertices;
+  QVector<QVector2D> uvs;
+  QVector<QVector3D> normals; // Won't be used at the moment.
 };
 
 #endif // GEOMETRYENGINE_H

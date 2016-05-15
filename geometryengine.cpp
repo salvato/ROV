@@ -42,16 +42,10 @@
 
 #include <QVector2D>
 #include <QVector3D>
-
-struct VertexData {
-  QVector3D position;
-  QVector2D texCoord;
-};
+#include <QFile>
 
 
 GeometryEngine::GeometryEngine() {
-  vboIds[0] = 0;
-  vboIds[1] = 0;
 }
 
 
@@ -59,109 +53,169 @@ GeometryEngine::~GeometryEngine() {
 }
 
 
+bool
+GeometryEngine::loadROVobj(QString path,
+                           QVector<QVector3D> &out_vertices,
+                           QVector<QVector2D> &out_uvs,
+                           QVector<QVector3D> &out_normals)
+{
+  QFile file(path);
+  if(!file.open(QIODevice::ReadOnly)) {
+    printf("Impossible to open the file !\n");
+    return false;
+  }
+  QVector<unsigned int> vertexIndices, uvIndices, normalIndices;
+  QVector<QVector3D> temp_vertices;
+  QVector<QVector2D> temp_uvs;
+  QVector<QVector3D> temp_normals;
+  float x, y, z;
+
+  QByteArray line;
+  QString string;
+  QStringList stringVals, stringTriples;
+
+  while(!file.atEnd()) {
+    line = file.readLine();
+    // parse line
+
+
+    if(line.startsWith("vt")) {
+      string = QString(line.mid(3));
+      stringVals = string.split(" ");
+      if(stringVals.size() != 2) {
+        qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+        return false;
+      }
+      x = stringVals.at(0).toFloat();
+      y = stringVals.at(1).toFloat();
+      temp_uvs.append(QVector2D(x, y));
+    }
+
+    else if(line.startsWith("vn")) {
+      string = QString(line.mid(3));
+      stringVals = string.split(" ");
+      if(stringVals.size() != 3) {
+        qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+        return false;
+      }
+      x = stringVals.at(0).toFloat();
+      y = stringVals.at(1).toFloat();
+      z = stringVals.at(2).toFloat();
+      temp_normals.append(QVector3D(x, y, z));
+    }
+
+    else if(line.startsWith("v")) {
+      string = QString(line.mid(2));
+      stringVals = string.split(" ");
+      if(stringVals.size() != 3) {
+        qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+        return false;
+      }
+      x = stringVals.at(0).toFloat();
+      y = stringVals.at(1).toFloat();
+      z = stringVals.at(2).toFloat();
+      temp_vertices.append(QVector3D(x, y, z));
+    }
+
+    else if(line.startsWith("f")) {
+      string = QString(line.mid(2));
+      stringTriples = string.split(" ");
+      if(stringTriples.size() != 3) {
+        qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+        return false;
+      }
+      for(int i=0; i<3; i++) {
+        stringVals = stringTriples.at(i).split("/");
+        if(stringVals.size() != 3) {
+          qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+          return false;
+        }
+        vertexIndices.append(stringVals.at(0).toFloat());
+        uvIndices    .append(stringVals.at(1).toFloat());
+        normalIndices.append(stringVals.at(2).toFloat());
+      }
+    }
+
+    // else Probably a comment, eat up the rest of the line
+  }
+  file.close();
+
+  // For each vertex of each triangle
+  for(int i=0; i<vertexIndices.size(); i++) {
+
+    // Get the indices of its attributes
+    unsigned int vertexIndex = vertexIndices[i];
+    unsigned int uvIndex     = uvIndices[i];
+    unsigned int normalIndex = normalIndices[i];
+
+    // Get the attributes thanks to the index
+    QVector3D vertex = temp_vertices[ vertexIndex-1 ];
+    QVector2D uv     = temp_uvs[ uvIndex-1 ];
+    QVector3D normal = temp_normals[ normalIndex-1 ];
+
+    // Put the attributes in buffers
+    out_vertices.append(vertex);
+    out_uvs     .append(uv);
+    out_normals .append(normal);
+  }
+
+  return true;
+}
+
+
 void
 GeometryEngine::init() {
+  if(!loadROVobj(":/ROV_4.obj", vertices, uvs, normals)) {
+    qDebug() << "Impossible to decode obj file";
+    exit(-1);
+  }
   initializeGLFunctions();
-  // Generate 2 VBOs
-  glGenBuffers(2, vboIds);
+  // Generate 3 VBOs
+  vertexbuffer.create();
+  uvbuffer.create();
+  normalbuffer.create();
   // Initializes cube geometry and transfers it to VBOs
-  initCubeGeometry();
+  initROVGeometry();
 }
 
 
 void
-GeometryEngine::initCubeGeometry() {
-  // For cube we would need only 8 vertices but we have to
-  // duplicate vertex for each face because texture coordinate
-  // is different.
-  VertexData vertices[] = {
-    // Vertex data for face 0
-    {QVector3D(-1.0f, -1.0f,  1.0f), QVector2D(0.0f, 0.0f)},  // v0
-    {QVector3D( 1.0f, -1.0f,  1.0f), QVector2D(0.33f, 0.0f)}, // v1
-    {QVector3D(-1.0f,  1.0f,  1.0f), QVector2D(0.0f, 0.5f)},  // v2
-    {QVector3D( 1.0f,  1.0f,  1.0f), QVector2D(0.33f, 0.5f)}, // v3
-
-    // Vertex data for face 1
-    {QVector3D( 1.0f, -1.0f,  1.0f), QVector2D( 0.0f, 0.5f)}, // v4
-    {QVector3D( 1.0f, -1.0f, -1.0f), QVector2D(0.33f, 0.5f)}, // v5
-    {QVector3D( 1.0f,  1.0f,  1.0f), QVector2D(0.0f, 1.0f)},  // v6
-    {QVector3D( 1.0f,  1.0f, -1.0f), QVector2D(0.33f, 1.0f)}, // v7
-
-    // Vertex data for face 2
-    {QVector3D( 1.0f, -1.0f, -1.0f), QVector2D(0.66f, 0.5f)}, // v8
-    {QVector3D(-1.0f, -1.0f, -1.0f), QVector2D(1.0f, 0.5f)},  // v9
-    {QVector3D( 1.0f,  1.0f, -1.0f), QVector2D(0.66f, 1.0f)}, // v10
-    {QVector3D(-1.0f,  1.0f, -1.0f), QVector2D(1.0f, 1.0f)},  // v11
-
-    // Vertex data for face 3
-    {QVector3D(-1.0f, -1.0f, -1.0f), QVector2D(0.66f, 0.0f)}, // v12
-    {QVector3D(-1.0f, -1.0f,  1.0f), QVector2D(1.0f, 0.0f)},  // v13
-    {QVector3D(-1.0f,  1.0f, -1.0f), QVector2D(0.66f, 0.5f)}, // v14
-    {QVector3D(-1.0f,  1.0f,  1.0f), QVector2D(1.0f, 0.5f)},  // v15
-
-    // Vertex data for face 4
-    {QVector3D(-1.0f, -1.0f, -1.0f), QVector2D(0.33f, 0.0f)}, // v16
-    {QVector3D( 1.0f, -1.0f, -1.0f), QVector2D(0.66f, 0.0f)}, // v17
-    {QVector3D(-1.0f, -1.0f,  1.0f), QVector2D(0.33f, 0.5f)}, // v18
-    {QVector3D( 1.0f, -1.0f,  1.0f), QVector2D(0.66f, 0.5f)}, // v19
-
-    // Vertex data for face 5
-    {QVector3D(-1.0f,  1.0f,  1.0f), QVector2D(0.33f, 0.5f)}, // v20
-    {QVector3D( 1.0f,  1.0f,  1.0f), QVector2D(0.66f, 0.5f)}, // v21
-    {QVector3D(-1.0f,  1.0f, -1.0f), QVector2D(0.33f, 1.0f)}, // v22
-    {QVector3D( 1.0f,  1.0f, -1.0f), QVector2D(0.66f, 1.0f)}  // v23
-  };
-
-  // Indices for drawing cube faces using triangle strips.
-  // Triangle strips can be connected by duplicating indices
-  // between the strips. If connecting strips have opposite
-  // vertex order then last index of the first strip and first
-  // index of the second strip needs to be duplicated. If
-  // connecting strips have same vertex order then only last
-  // index of the first strip needs to be duplicated.
-  GLushort indices[] = {
-    0,  1,  2,  3,  3,      // Face 0 - triangle strip ( v0,  v1,  v2,  v3)
-    4,  4,  5,  6,  7,  7,  // Face 1 - triangle strip ( v4,  v5,  v6,  v7)
-    8,  8,  9, 10, 11, 11,  // Face 2 - triangle strip ( v8,  v9, v10, v11)
-    12, 12, 13, 14, 15, 15, // Face 3 - triangle strip (v12, v13, v14, v15)
-    16, 16, 17, 18, 19, 19, // Face 4 - triangle strip (v16, v17, v18, v19)
-    20, 20, 21, 22, 23      // Face 5 - triangle strip (v20, v21, v22, v23)
-  };
-
+GeometryEngine::initROVGeometry() {
   // Transfer vertex data to VBO 0
-  glBindBuffer(GL_ARRAY_BUFFER, vboIds[0]);
-  glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(VertexData), vertices, GL_STATIC_DRAW);
+  vertexbuffer.bind();
+  vertexbuffer.allocate((void *)vertices.data(), vertices.size() * sizeof(QVector3D));
 
-  // Transfer index data to VBO 1
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIds[1]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, 34 * sizeof(GLushort), indices, GL_STATIC_DRAW);
+  // Transfer uv data to VBO 1
+  uvbuffer.bind();
+  uvbuffer.allocate((void *)uvs.data(), uvs.size() * sizeof(QVector2D));
 
+  // Transfer normal data to VBO 2
+  normalbuffer.bind();
+  normalbuffer.allocate((void *)normals.data(), normals.size() * sizeof(QVector3D));
 }
 
 
 void
-GeometryEngine::drawCubeGeometry(QGLShaderProgram *program) {
-  // Tell OpenGL which VBOs to use
-  glBindBuffer(GL_ARRAY_BUFFER, vboIds[0]);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIds[1]);
-
-  // Offset for position
-  quintptr offset = 0;
-
+GeometryEngine::drawROVGeometry(QGLShaderProgram *program) {
   // Tell OpenGL programmable pipeline how to locate vertex position data
+  vertexbuffer.bind();
   int vertexLocation = program->attributeLocation("a_position");
   program->enableAttributeArray(vertexLocation);
-  glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
-
-  // Offset for texture coordinate
-  offset += sizeof(QVector3D);
+  program->setAttributeBuffer(vertexLocation, GL_FLOAT, 0, 3, sizeof(QVector3D));
 
   // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
+  uvbuffer.bind();
   int texcoordLocation = program->attributeLocation("a_texcoord");
   program->enableAttributeArray(texcoordLocation);
-  glVertexAttribPointer(texcoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
+  program->setAttributeBuffer(texcoordLocation, GL_FLOAT, 0, 2, sizeof(QVector2D));
 
-  // Draw cube geometry using indices from VBO 1
-  glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
+  // Tell OpenGL programmable pipeline how to locate normals data
+  normalbuffer.bind();
+  int normcoordLocation = program->attributeLocation("vertexNormal_modelspace");
+  program->enableAttributeArray(normcoordLocation);
+  program->setAttributeBuffer(normcoordLocation, GL_FLOAT, 0, 3, sizeof(QVector3D));
+
+  // Draw ROV geometry
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 }
 

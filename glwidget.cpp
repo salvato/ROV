@@ -123,7 +123,7 @@ void
 GLWidget::initTextures() {
   // Load cube.png image
   glEnable(GL_TEXTURE_2D);
-  texture = bindTexture(QImage(":/cube.png"));
+  texture = bindTexture(QImage(":/ROV.png"));
   // Set nearest filtering mode for texture minification
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   // Set bilinear filtering mode for texture magnification
@@ -164,8 +164,11 @@ GLWidget::paintGL() {
     QVector3D(camera->UpX(), camera->UpY(), camera->UpZ())              // Head is up (set to 0,-1,0 to look upside-down)
   );
 
-  // Use texture unit 0 which contains cube.png
+  // Use texture unit 0 which contains ROV.png
   program.setUniformValue("texture", 0);
+
+  QVector3D lightPos = QVector3D(0, 0, 40);
+  program.setUniformValue("LightPosition_worldspace", lightPos);
 
   modelMatrix.setToIdentity();
 
@@ -180,11 +183,13 @@ GLWidget::paintGL() {
   } else if(fromSide == GLWidget::rear) {
     modelMatrix.rotate(180.0, 0.0, 1.0, 0.0);
   } else if(fromSide == GLWidget::front) {
-    modelMatrix.rotate(90.0, 0.0, 0.0, 1.0);
+    modelMatrix.rotate(0.0, 0.0, 0.0, 1.0);
   }
 
   Shimmer3Box *pSensor, *pSensor0;
+
   if(shimmerSensors->count() > 1) {
+
     pSensor0 = (*shimmerSensors)[0];
     // Sensori dipendenti dal primo
     for(int i=0; i<shimmerSensors->count(); i++) {
@@ -200,15 +205,22 @@ GLWidget::paintGL() {
       }
       // Draw the sensor with the right dimensions
       modelMatrix.scale(pSensor->w, pSensor->h, pSensor->d);
+
       // Set modelview-projection matrix
       mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-      program.setUniformValue("mvp_matrix", mvpMatrix);
-      geometries.drawCubeGeometry(&program);
+      program.setUniformValue("MVP", mvpMatrix);
+      program.setUniformValue("V",   viewMatrix);
+      program.setUniformValue("M",   modelMatrix);
+
+      geometries.drawROVGeometry(&program);
       // restore the unrotated coordinate system.
       modelMatrix = matrixStack.takeFirst();
     }
 
-  } else if(shimmerSensors->count() == 1) {
+  }
+
+  else if(shimmerSensors->count() == 1) {
+
     pSensor = (*shimmerSensors)[0];
     // save the unrotated coordinate system.
     matrixStack.prepend(modelMatrix);
@@ -219,11 +231,13 @@ GLWidget::paintGL() {
     // Set modelview-projection matrix
     mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
     program.setUniformValue("mvp_matrix", mvpMatrix);
-    geometries.drawCubeGeometry(&program);
+    program.setUniformValue("v_matrix",   viewMatrix);
+    program.setUniformValue("m_matrix",   modelMatrix);
+
+    geometries.drawROVGeometry(&program);
     // restore the unrotated coordinate system.
     modelMatrix = matrixStack.takeFirst();
-
-  }
+  }// if(shimmerSensors->count() == 1)
 }
 
 

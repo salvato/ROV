@@ -354,24 +354,24 @@ CGrCamera::DollyHelper(double m[4][4], double x, double y, double z) {
 void 
 CGrCamera::MouseMove(int x, int y) {
   switch(m_mousemode) {
-//    case PANTILT:
-//      Pan((x - m_mousex) * -0.1);
-//      Tilt((y - m_mousey) * -0.1);
-//      break;
+    case PANTILT:
+      Pan((x - m_mousex) * -0.1);
+      Tilt((y - m_mousey) * -0.1);
+      break;
 
     case ROLLMOVE:
       Roll((x - m_mousex) * 0.1);
       DollyCamera(0, 0, 0.01*(y-m_mousey));
       break;
 
-//    case DOLLYXY:
-//      DollyCamera(0.01*(x - m_mousex), 0.01*(y - m_mousey), 0);
-//      break;
+    case DOLLYXY:
+      DollyCamera(0.01*(x - m_mousex), 0.01*(y - m_mousey), 0);
+      break;
 
-//    case PITCHYAW:
-//      Yaw((x - m_mousex) * 0.8);  // GS Changed Movement Sign
-//      Pitch((y - m_mousey) * 0.8);// GS Changed Movement Sign
-//      break;
+    case PITCHYAW:
+      Yaw((x - m_mousex) * 0.8);  // GS Changed Movement Sign
+      Pitch((y - m_mousey) * 0.8);// GS Changed Movement Sign
+      break;
 
     default:
       break;

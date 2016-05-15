@@ -79,9 +79,9 @@ MainWindow::updateWidgets() {
 
 void
 MainWindow::initCamera() {
-  // Set(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ)
-  camera.Set(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-  camera.FieldOfView(5.0);
+  //     Set(eyePosX, eyePosY, eyePosZ, centerX, centerY, centerZ, upX, upY, upZ)
+  camera.Set(0.0,     0.0,     30.0,    0.0,     0.0,     0.0,     0.0, 1.0, 0.0);
+  camera.FieldOfView(45.0);
   camera.MouseMode(CGrCamera::PITCHYAW);
   camera.Gravity(false);
 }
@@ -92,7 +92,7 @@ MainWindow::initWidgets() {
   boxes.clear();
   boxes.append(new Shimmer3Box());
   pFrontWidget = new GLWidget(&camera, this);
-  pFrontWidget->setSide(GLWidget::front);
+  pFrontWidget->setSide(GLWidget::top);
   pFrontWidget->setShimmerBoxes(&boxes);
   updateWidgets();
 }
@@ -117,7 +117,7 @@ MainWindow::initLayout() {
   //pPitch->setRange(JoystickEvent::MIN_AXES_VALUE, JoystickEvent::MAX_AXES_VALUE);
   pPitch->setRange(-10, 10);
 
-  pEditHostName         = new QLineEdit("192.168.77.58", this);
+  pEditHostName         = new QLineEdit("192.168.1.123", this);
   pButtonConnect        = new QPushButton("Connect", this);
   pCheckInflate         = new QCheckBox("Inflate");
   pCheckDeflate         = new QCheckBox("Deflate");

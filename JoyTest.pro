@@ -34,4 +34,7 @@ HEADERS  += mainwindow.h \
 
 RESOURCES += \
     shaders.qrc \
-    textures.qrc
+    textures.qrc \
+    otherresources.qrc
+
+DISTFILES +=
