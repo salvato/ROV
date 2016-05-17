@@ -61,7 +61,6 @@ public slots:
   void serverConnected();
   void serverDisconnected();
   void newDataAvailable();
-  void updateClientProgress(qint64 numBytes);
   void updateWidgets();
 
 signals:

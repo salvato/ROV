@@ -48,6 +48,7 @@
 #include <QVector3D>
 #include <QVector2D>
 #include <QGLShaderProgram>
+#include <QOpenGLTexture>
 
 #include "GrCamera.h"
 #include "geometryengine.h"
@@ -113,8 +114,9 @@ private:
   QMatrix4x4 viewMatrix;
   QMatrix4x4 mvpMatrix;
   QList<QMatrix4x4> matrixStack;
+  QVector4D lightPos;
 
-  GLuint texture;
+  QOpenGLTexture* texture;
   QGLShaderProgram program;
   GeometryEngine geometries;
 

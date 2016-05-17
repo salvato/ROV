@@ -56,6 +56,7 @@ GLWidget::GLWidget(CGrCamera* myCamera, QWidget *parent)
   , sLabel(tr("Front"))
   , camera(myCamera)
 {
+  lightPos = QVector4D(0, 4000, 4000, 1.0);
 }
 
 
@@ -71,7 +72,7 @@ GLWidget::minimumSizeHint() const {
 
 QSize
 GLWidget::sizeHint() const {
-  return QSize(330, 330);
+  return QSize(800, 800);
 }
 
 
@@ -87,7 +88,7 @@ GLWidget::initializeGL() {
   initShaders();
   initTextures();
 
-  glClearColor(0.2, 0.30, 0.63, 0.0);
+  glClearColor(0.1, 0.1, 0.5, 0.0);
 
   glEnable(GL_DEPTH_TEST);// Enable depth test
   glDepthFunc(GL_LESS);// Accept fragment if it closer to the camera than the former one
@@ -121,17 +122,20 @@ GLWidget::initShaders() {
 
 void
 GLWidget::initTextures() {
-  // Load cube.png image
-  glEnable(GL_TEXTURE_2D);
-  texture = bindTexture(QImage(":/ROV.png"));
+  // Load the image
+  // glEnable(GL_TEXTURE_2D);
+  texture = new QOpenGLTexture(QImage(":/ROV.png").mirrored());
   // Set nearest filtering mode for texture minification
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  texture->setMinificationFilter(QOpenGLTexture::Nearest);
   // Set bilinear filtering mode for texture magnification
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  texture->setMagnificationFilter(QOpenGLTexture::Linear);
   // Wrap texture coordinates by repeating
   // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  texture->setWrapMode(QOpenGLTexture::Repeat);
 }
 
 
@@ -150,24 +154,23 @@ GLWidget::paintGL() {
 
   if(shimmerSensors->isEmpty()) return;
 
+  texture->bind();
+
   // Use our shader
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, texture);
   glUseProgram(program.programId());
 
 
   // Camera matrix
   viewMatrix.setToIdentity();
   viewMatrix.lookAt(
-    QVector3D(camera->EyeX(), camera->EyeY(), camera->EyeZ()),          // Camera position in World Space
+    QVector3D(camera->EyeX(),    camera->EyeY(),    camera->EyeZ()),    // Camera position in World Space
     QVector3D(camera->CenterX(), camera->CenterY(), camera->CenterZ()), // Looking at the origin
-    QVector3D(camera->UpX(), camera->UpY(), camera->UpZ())              // Head is up (set to 0,-1,0 to look upside-down)
+    QVector3D(camera->UpX(),     camera->UpY(),     camera->UpZ())      // Head is up (set to 0,-1,0 to look upside-down)
   );
 
-  // Use texture unit 0 which contains ROV.png
-  program.setUniformValue("texture", 0);
+//  // Use texture unit 0 which contains ROV.png
+//  program.setUniformValue("qt_Texture0", 0);
 
-  QVector3D lightPos = QVector3D(0, 0, 40);
   program.setUniformValue("LightPosition_worldspace", lightPos);
 
   modelMatrix.setToIdentity();
@@ -176,6 +179,7 @@ GLWidget::paintGL() {
     modelMatrix.rotate(90.0, 1.0, 0.0, 0.0);
   } else if(fromSide == GLWidget::bottom) {
     modelMatrix.rotate(-90.0, 1.0, 0.0, 0.0);
+    modelMatrix.rotate(90.0, 0.0, 0.0, 1.0);
   } else if(fromSide == GLWidget::left) {
     modelMatrix.rotate(90.0, 0.0, 1.0, 0.0);
   } else if(fromSide == GLWidget::right) {
@@ -189,7 +193,6 @@ GLWidget::paintGL() {
   Shimmer3Box *pSensor, *pSensor0;
 
   if(shimmerSensors->count() > 1) {
-
     pSensor0 = (*shimmerSensors)[0];
     // Sensori dipendenti dal primo
     for(int i=0; i<shimmerSensors->count(); i++) {
@@ -204,39 +207,50 @@ GLWidget::paintGL() {
         modelMatrix.rotate( pSensor->angle, pSensor->x, pSensor->y, pSensor->z);
       }
       // Draw the sensor with the right dimensions
-      modelMatrix.scale(pSensor->w, pSensor->h, pSensor->d);
+      float scale = 1.0/(geometries.max-geometries.min);
+      modelMatrix.scale(scale, scale, scale);
 
       // Set modelview-projection matrix
       mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-      program.setUniformValue("MVP", mvpMatrix);
-      program.setUniformValue("V",   viewMatrix);
-      program.setUniformValue("M",   modelMatrix);
+      program.setUniformValue("mvp_Matrix",   mvpMatrix);
+      program.setUniformValue("view_Matrix",  viewMatrix);
+      program.setUniformValue("model_Matrix", modelMatrix);
+      modelMatrix = modelMatrix.inverted();
+      modelMatrix = modelMatrix.transposed();
+      program.setUniformValue("model_MatrixIT", modelMatrix);
 
       geometries.drawROVGeometry(&program);
       // restore the unrotated coordinate system.
       modelMatrix = matrixStack.takeFirst();
     }
-
   }
-
   else if(shimmerSensors->count() == 1) {
-
     pSensor = (*shimmerSensors)[0];
     // save the unrotated coordinate system.
     matrixStack.prepend(modelMatrix);
     // Translate sensor in his position
     modelMatrix.translate(pSensor->pos[0], pSensor->pos[1], pSensor->pos[2]);
     modelMatrix.rotate(pSensor->angle, pSensor->x, pSensor->y, pSensor->z);
-    modelMatrix.scale(pSensor->w, pSensor->h, pSensor->d);
-    // Set modelview-projection matrix
-    mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
-    program.setUniformValue("mvp_matrix", mvpMatrix);
-    program.setUniformValue("v_matrix",   viewMatrix);
-    program.setUniformValue("m_matrix",   modelMatrix);
+    // Draw the sensor with the right dimensions
+    float scale = 1.0/(geometries.max-geometries.min);
+    modelMatrix.scale(scale, scale, scale);
 
+    mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+
+    // Set modelview-projection matrix
+    program.setUniformValue("mvp_Matrix",   mvpMatrix);
+    program.setUniformValue("view_Matrix",  viewMatrix);
+    program.setUniformValue("model_Matrix", modelMatrix);
+    modelMatrix = modelMatrix.inverted();
+    modelMatrix = modelMatrix.transposed();
+    program.setUniformValue("model_MatrixIT", modelMatrix);
+
+    // Draw the geometry
     geometries.drawROVGeometry(&program);
+
     // restore the unrotated coordinate system.
     modelMatrix = matrixStack.takeFirst();
+
   }// if(shimmerSensors->count() == 1)
 }
 
@@ -263,42 +277,45 @@ GLWidget::setSide(side from) {
 
 void
 GLWidget::mousePressEvent(QMouseEvent *event) {
-  if (event->buttons() & Qt::RightButton) {
-    lastPos = event->pos();
-    camera->MouseDown(event->x(), event->y());
-    camera->MouseMode(CGrCamera::ROLLMOVE);
-    event->accept();
-  } else if (event->buttons() & Qt::LeftButton) {
-    lastPos = event->pos();
-    camera->MouseDown(event->x(), event->y());
-    event->accept();
-  }
+  Q_UNUSED(event)
+//  if (event->buttons() & Qt::RightButton) {
+//    lastPos = event->pos();
+//    camera->MouseDown(event->x(), event->y());
+//    camera->MouseMode(CGrCamera::ROLLMOVE);
+//    event->accept();
+//  } else if (event->buttons() & Qt::LeftButton) {
+//    lastPos = event->pos();
+//    camera->MouseDown(event->x(), event->y());
+//    event->accept();
+//  }
 }
 
 
 void
 GLWidget::mouseReleaseEvent(QMouseEvent *event) {
-  if (event->button() & Qt::RightButton) {
-    camera->MouseMode(CGrCamera::PITCHYAW);
-    event->accept();
-  } else if (event->button() & Qt::LeftButton) {
-    camera->MouseMode(CGrCamera::PITCHYAW);
-    event->accept();
-  }
+  Q_UNUSED(event)
+//  if (event->button() & Qt::RightButton) {
+//    camera->MouseMode(CGrCamera::PITCHYAW);
+//    event->accept();
+//  } else if (event->button() & Qt::LeftButton) {
+//    camera->MouseMode(CGrCamera::PITCHYAW);
+//    event->accept();
+//  }
 }
 
 
 void
 GLWidget::mouseMoveEvent(QMouseEvent *event) {
-  if (event->buttons() & Qt::LeftButton) {
-    camera->MouseMove(event->x(), event->y());
-    event->accept();
-    emit windowUpdated();
-  } else if (event->buttons() & Qt::RightButton) {
-    camera->MouseMove(event->x(), event->y());
-    event->accept();
-    emit windowUpdated();
-  }
+  Q_UNUSED(event)
+//  if (event->buttons() & Qt::LeftButton) {
+//    camera->MouseMove(event->x(), event->y());
+//    event->accept();
+//    emit windowUpdated();
+//  } else if (event->buttons() & Qt::RightButton) {
+//    camera->MouseMove(event->x(), event->y());
+//    event->accept();
+//    emit windowUpdated();
+//  }
 }
 
 

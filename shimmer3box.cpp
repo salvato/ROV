@@ -9,7 +9,7 @@ Shimmer3Box::Shimmer3Box()
   pos[0] = 0.0;
   pos[1] = 0.0;
   pos[2] = 0.0;
-  angle  = 90.0;
+  angle  = 0.0;
   x      = 0.0;
   y      = 1.0;
   z      = 0.0;

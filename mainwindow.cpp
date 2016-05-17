@@ -59,7 +59,6 @@ MainWindow::MainWindow(QWidget *parent)
   connect(&tcpClient, SIGNAL(connected()), this, SLOT(serverConnected()));
   connect(&tcpClient, SIGNAL(disconnected()), this, SLOT(serverDisconnected()));
   connect(&tcpClient, SIGNAL(readyRead()), this, SLOT(newDataAvailable()));
-  connect(&tcpClient, SIGNAL(bytesWritten(qint64)), this, SLOT(updateClientProgress(qint64)));
   connect(&tcpClient, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(displayError(QAbstractSocket::SocketError)));
 }
 
@@ -80,7 +79,7 @@ MainWindow::updateWidgets() {
 void
 MainWindow::initCamera() {
   //     Set(eyePosX, eyePosY, eyePosZ, centerX, centerY, centerZ, upX, upY, upZ)
-  camera.Set(0.0,     0.0,     30.0,    0.0,     0.0,     0.0,     0.0, 1.0, 0.0);
+  camera.Set(0.0,     0.0,     2.0,     0.0,     0.0,     0.0,     0.0, 1.0, 0.0);
   camera.FieldOfView(45.0);
   camera.MouseMode(CGrCamera::PITCHYAW);
   camera.Gravity(false);
@@ -92,7 +91,7 @@ MainWindow::initWidgets() {
   boxes.clear();
   boxes.append(new Shimmer3Box());
   pFrontWidget = new GLWidget(&camera, this);
-  pFrontWidget->setSide(GLWidget::top);
+  pFrontWidget->setSide(GLWidget::bottom);
   pFrontWidget->setShimmerBoxes(&boxes);
   updateWidgets();
 }
@@ -265,17 +264,6 @@ MainWindow::executeCommand(QString command) {
       }
     }
   }
-}
-
-
-void
-MainWindow::updateClientProgress(qint64 numBytes) {
-  // called when the TCP client has written some bytes
-  Q_UNUSED(numBytes)
-//  bytesWritten += (int)numBytes;
-//  QString sString;
-//  sString.sprintf("Sent %d Bytes", bytesWritten);
-//  console.appendPlainText(sString);
 }
 
 

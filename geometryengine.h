@@ -53,6 +53,9 @@ public:
 
   void init();
   void drawROVGeometry(QGLShaderProgram *program);
+  float min;
+  float max;
+  QString objPath;
 
 private:
   bool loadROVobj(QString path, QVector<QVector3D>& out_vertices, QVector<QVector2D>& out_uvs, QVector<QVector3D>& out_normals);

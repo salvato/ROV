@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>ROV_4.obj</file>
+        <file>ROV.obj</file>
+        <file>ROV_1.obj</file>
     </qresource>
 </RCC>

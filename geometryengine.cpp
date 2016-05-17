@@ -43,21 +43,27 @@
 #include <QVector2D>
 #include <QVector3D>
 #include <QFile>
+#include <float.h>
 
 
-GeometryEngine::GeometryEngine() {
+GeometryEngine::GeometryEngine()
+  : objPath(":/ROV_1.obj")
+{
 }
 
 
 GeometryEngine::~GeometryEngine() {
+  vertexbuffer.destroy();
+  uvbuffer.destroy();
+  normalbuffer.destroy();
 }
 
 
 bool
 GeometryEngine::loadROVobj(QString path,
-                           QVector<QVector3D> &out_vertices,
-                           QVector<QVector2D> &out_uvs,
-                           QVector<QVector3D> &out_normals)
+                        QVector<QVector3D> &out_vertices,
+                        QVector<QVector2D> &out_uvs,
+                        QVector<QVector3D> &out_normals)
 {
   QFile file(path);
   if(!file.open(QIODevice::ReadOnly)) {
@@ -69,6 +75,8 @@ GeometryEngine::loadROVobj(QString path,
   QVector<QVector2D> temp_uvs;
   QVector<QVector3D> temp_normals;
   float x, y, z;
+  min =  FLT_MAX;
+  max = -FLT_MAX;
 
   QByteArray line;
   QString string;
@@ -76,10 +84,10 @@ GeometryEngine::loadROVobj(QString path,
 
   while(!file.atEnd()) {
     line = file.readLine();
-    // parse line
 
+    // parse the line
 
-    if(line.startsWith("vt")) {
+    if(line.startsWith("vt")) {// is the texture coordinate of one vertex
       string = QString(line.mid(3));
       stringVals = string.split(" ");
       if(stringVals.size() != 2) {
@@ -91,7 +99,7 @@ GeometryEngine::loadROVobj(QString path,
       temp_uvs.append(QVector2D(x, y));
     }
 
-    else if(line.startsWith("vn")) {
+    else if(line.startsWith("vn")) {// is the normal of one vertex
       string = QString(line.mid(3));
       stringVals = string.split(" ");
       if(stringVals.size() != 3) {
@@ -104,7 +112,7 @@ GeometryEngine::loadROVobj(QString path,
       temp_normals.append(QVector3D(x, y, z));
     }
 
-    else if(line.startsWith("v")) {
+    else if(line.startsWith("v")) {// Is a vertex
       string = QString(line.mid(2));
       stringVals = string.split(" ");
       if(stringVals.size() != 3) {
@@ -115,9 +123,15 @@ GeometryEngine::loadROVobj(QString path,
       y = stringVals.at(1).toFloat();
       z = stringVals.at(2).toFloat();
       temp_vertices.append(QVector3D(x, y, z));
+      if(x < min) min = x;
+      if(x > max) max = x;
+      if(y < min) min = y;
+      if(y > max) max = y;
+      if(z < min) min = z;
+      if(z > max) max = z;
     }
 
-    else if(line.startsWith("f")) {
+    else if(line.startsWith("f")) {// is a face
       string = QString(line.mid(2));
       stringTriples = string.split(" ");
       if(stringTriples.size() != 3) {
@@ -131,41 +145,51 @@ GeometryEngine::loadROVobj(QString path,
           return false;
         }
         vertexIndices.append(stringVals.at(0).toFloat());
-        uvIndices    .append(stringVals.at(1).toFloat());
+        if(stringVals.at(1) == "")
+          uvIndices    .append(1);
+        else
+          uvIndices    .append(stringVals.at(1).toFloat());
         normalIndices.append(stringVals.at(2).toFloat());
       }
     }
 
-    // else Probably a comment, eat up the rest of the line
+    // else
+      // Probably a comment skip the rest of the line
   }
   file.close();
+  qDebug() << min << max;
 
   // For each vertex of each triangle
   for(int i=0; i<vertexIndices.size(); i++) {
-
     // Get the indices of its attributes
     unsigned int vertexIndex = vertexIndices[i];
-    unsigned int uvIndex     = uvIndices[i];
     unsigned int normalIndex = normalIndices[i];
-
     // Get the attributes thanks to the index
     QVector3D vertex = temp_vertices[ vertexIndex-1 ];
-    QVector2D uv     = temp_uvs[ uvIndex-1 ];
     QVector3D normal = temp_normals[ normalIndex-1 ];
-
     // Put the attributes in buffers
     out_vertices.append(vertex);
-    out_uvs     .append(uv);
     out_normals .append(normal);
   }
 
+  if(!temp_uvs.isEmpty()) {
+    // For each vertex of each triangle
+    for(int i=0; i<vertexIndices.size(); i++) {
+        // Get the indices of its attributes
+      unsigned int uvIndex = uvIndices[i];
+        // Get the attributes thanks to the index
+      QVector2D uv = temp_uvs[ uvIndex-1 ];
+        // Put the attributes in buffers
+      out_uvs.append(uv);
+    }
+  }
   return true;
 }
 
 
 void
 GeometryEngine::init() {
-  if(!loadROVobj(":/ROV_4.obj", vertices, uvs, normals)) {
+  if(!loadROVobj(objPath, vertices, uvs, normals)) {
     qDebug() << "Impossible to decode obj file";
     exit(-1);
   }
@@ -185,13 +209,13 @@ GeometryEngine::initROVGeometry() {
   vertexbuffer.bind();
   vertexbuffer.allocate((void *)vertices.data(), vertices.size() * sizeof(QVector3D));
 
-  // Transfer uv data to VBO 1
-  uvbuffer.bind();
-  uvbuffer.allocate((void *)uvs.data(), uvs.size() * sizeof(QVector2D));
-
-  // Transfer normal data to VBO 2
+  // Transfer normal data to VBO 1
   normalbuffer.bind();
   normalbuffer.allocate((void *)normals.data(), normals.size() * sizeof(QVector3D));
+
+  // Transfer uv data to VBO 2
+  uvbuffer.bind();
+  uvbuffer.allocate((void *)uvs.data(), uvs.size() * sizeof(QVector2D));
 }
 
 
@@ -199,13 +223,13 @@ void
 GeometryEngine::drawROVGeometry(QGLShaderProgram *program) {
   // Tell OpenGL programmable pipeline how to locate vertex position data
   vertexbuffer.bind();
-  int vertexLocation = program->attributeLocation("a_position");
+  int vertexLocation = program->attributeLocation("qt_Vertex");
   program->enableAttributeArray(vertexLocation);
   program->setAttributeBuffer(vertexLocation, GL_FLOAT, 0, 3, sizeof(QVector3D));
 
   // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
   uvbuffer.bind();
-  int texcoordLocation = program->attributeLocation("a_texcoord");
+  int texcoordLocation = program->attributeLocation("qt_MultiTexCoord0");
   program->enableAttributeArray(texcoordLocation);
   program->setAttributeBuffer(texcoordLocation, GL_FLOAT, 0, 2, sizeof(QVector2D));
 
