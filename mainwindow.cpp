@@ -91,7 +91,11 @@ MainWindow::initWidgets() {
   boxes.clear();
   boxes.append(new Shimmer3Box());
   pFrontWidget = new GLWidget(&camera, this);
-  pFrontWidget->setSide(GLWidget::bottom);
+//  pFrontWidget->setSide(GLWidget::rear);
+  //     Set(eyePosX,  eyePosY, eyePosZ, centerX, centerY, centerZ, upX, upY, upZ)
+  camera.Set(-2.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0, 0.0, 1.0);
+  pFrontWidget->lightPos = QVector4D(-2800, -2800, 2800, 1.0);
+
   pFrontWidget->setShimmerBoxes(&boxes);
   updateWidgets();
 }

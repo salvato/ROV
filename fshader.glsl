@@ -12,9 +12,9 @@ in vec4 LightDirection_cameraspace;
 
 // Values that stay constant for the whole mesh.
 uniform vec4 LightPosition_worldspace;
-//uniform sampler2D qt_Texture0;
+uniform sampler2D qt_Texture0;
 
-//varying vec2 qt_TexCoord0;
+varying vec2 qt_TexCoord0;
 
 void
 main() {
@@ -24,9 +24,9 @@ main() {
   float LightPower = 5000.0*5000.0;
 
   // Material properties
-  vec4 MaterialDiffuseColor  = vec4(1.0, 1.0, 0.1, 1.0);//texture( myTextureSampler, UV ).rgb;
+  vec4 MaterialDiffuseColor  = texture2D(qt_Texture0, qt_TexCoord0.st);
   vec4 MaterialAmbientColor  = vec4(0.2, 0.2, 0.2, 1.0) * MaterialDiffuseColor;
-  vec4 MaterialSpecularColor = vec4(0.9, 0.9, 0.9, 1.0);
+  vec4 MaterialSpecularColor = vec4(0.1, 0.1, 0.1, 1.0);
 
   // Distance to the light
   float distance = length(LightPosition_worldspace - Position_worldspace);

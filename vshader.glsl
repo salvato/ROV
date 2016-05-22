@@ -20,7 +20,7 @@ varying vec4 Position_worldspace;
 varying vec4 Normal_cameraspace;
 varying vec4 EyeDirection_cameraspace;
 varying vec4 LightDirection_cameraspace;
-//varying vec2 qt_TexCoord0;
+varying vec2 qt_TexCoord0;
 
 void
 main(void) {
@@ -47,5 +47,5 @@ main(void) {
 
     // Pass texture coordinate to fragment shader
     // Value will be automatically interpolated to fragments inside polygon faces
-//    qt_TexCoord0 = qt_TexCoord0;
+    qt_TexCoord0 = qt_TexCoord0;
 }

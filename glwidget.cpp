@@ -123,8 +123,8 @@ GLWidget::initShaders() {
 void
 GLWidget::initTextures() {
   // Load the image
-  // glEnable(GL_TEXTURE_2D);
-  texture = new QOpenGLTexture(QImage(":/ROV.png").mirrored());
+   glEnable(GL_TEXTURE_2D);
+  texture = new QOpenGLTexture(QImage(":/ROV_1.png").mirrored());
   // Set nearest filtering mode for texture minification
   // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   texture->setMinificationFilter(QOpenGLTexture::Nearest);
@@ -159,7 +159,6 @@ GLWidget::paintGL() {
   // Use our shader
   glUseProgram(program.programId());
 
-
   // Camera matrix
   viewMatrix.setToIdentity();
   viewMatrix.lookAt(
@@ -176,18 +175,11 @@ GLWidget::paintGL() {
   modelMatrix.setToIdentity();
 
   if(fromSide == GLWidget::top) {
-    modelMatrix.rotate(90.0, 1.0, 0.0, 0.0);
   } else if(fromSide == GLWidget::bottom) {
-    modelMatrix.rotate(-90.0, 1.0, 0.0, 0.0);
-    modelMatrix.rotate(90.0, 0.0, 0.0, 1.0);
   } else if(fromSide == GLWidget::left) {
-    modelMatrix.rotate(90.0, 0.0, 1.0, 0.0);
   } else if(fromSide == GLWidget::right) {
-    modelMatrix.rotate(-90.0, 0.0, 1.0, 0.0);
   } else if(fromSide == GLWidget::rear) {
-    modelMatrix.rotate(180.0, 0.0, 1.0, 0.0);
   } else if(fromSide == GLWidget::front) {
-    modelMatrix.rotate(0.0, 0.0, 0.0, 1.0);
   }
 
   Shimmer3Box *pSensor, *pSensor0;
@@ -278,44 +270,44 @@ GLWidget::setSide(side from) {
 void
 GLWidget::mousePressEvent(QMouseEvent *event) {
   Q_UNUSED(event)
-//  if (event->buttons() & Qt::RightButton) {
-//    lastPos = event->pos();
-//    camera->MouseDown(event->x(), event->y());
-//    camera->MouseMode(CGrCamera::ROLLMOVE);
-//    event->accept();
-//  } else if (event->buttons() & Qt::LeftButton) {
-//    lastPos = event->pos();
-//    camera->MouseDown(event->x(), event->y());
-//    event->accept();
-//  }
+  if (event->buttons() & Qt::RightButton) {
+    lastPos = event->pos();
+    camera->MouseDown(event->x(), event->y());
+    camera->MouseMode(CGrCamera::ROLLMOVE);
+    event->accept();
+  } else if (event->buttons() & Qt::LeftButton) {
+    lastPos = event->pos();
+    camera->MouseDown(event->x(), event->y());
+    event->accept();
+  }
 }
 
 
 void
 GLWidget::mouseReleaseEvent(QMouseEvent *event) {
   Q_UNUSED(event)
-//  if (event->button() & Qt::RightButton) {
-//    camera->MouseMode(CGrCamera::PITCHYAW);
-//    event->accept();
-//  } else if (event->button() & Qt::LeftButton) {
-//    camera->MouseMode(CGrCamera::PITCHYAW);
-//    event->accept();
-//  }
+  if (event->button() & Qt::RightButton) {
+    camera->MouseMode(CGrCamera::PITCHYAW);
+    event->accept();
+  } else if (event->button() & Qt::LeftButton) {
+    camera->MouseMode(CGrCamera::PITCHYAW);
+    event->accept();
+  }
 }
 
 
 void
 GLWidget::mouseMoveEvent(QMouseEvent *event) {
   Q_UNUSED(event)
-//  if (event->buttons() & Qt::LeftButton) {
-//    camera->MouseMove(event->x(), event->y());
-//    event->accept();
-//    emit windowUpdated();
-//  } else if (event->buttons() & Qt::RightButton) {
-//    camera->MouseMove(event->x(), event->y());
-//    event->accept();
-//    emit windowUpdated();
-//  }
+  if (event->buttons() & Qt::LeftButton) {
+    camera->MouseMove(event->x(), event->y());
+    event->accept();
+    emit windowUpdated();
+  } else if (event->buttons() & Qt::RightButton) {
+    camera->MouseMove(event->x(), event->y());
+    event->accept();
+    emit windowUpdated();
+  }
 }
 
 

@@ -81,6 +81,7 @@ public:
   } fromSide;
   void setSide(side from);
   QVector<Shimmer3Box*>* shimmerSensors;
+  QVector4D lightPos;
 
 signals:
   void xRotationChanged(int angle);
@@ -114,7 +115,6 @@ private:
   QMatrix4x4 viewMatrix;
   QMatrix4x4 mvpMatrix;
   QList<QMatrix4x4> matrixStack;
-  QVector4D lightPos;
 
   QOpenGLTexture* texture;
   QGLShaderProgram program;
