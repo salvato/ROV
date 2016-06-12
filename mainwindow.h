@@ -8,6 +8,7 @@
 #include <QHostInfo>
 #include <QPlainTextEdit>
 #include <QByteArray>
+#include <QTimer>
 
 #include "GrCamera.h"
 
@@ -24,6 +25,12 @@ QT_FORWARD_DECLARE_CLASS(QCheckBox)
 QT_FORWARD_DECLARE_CLASS(Shimmer3Box)
 QT_FORWARD_DECLARE_CLASS(GLWidget)
 
+#ifdef Q_OS_LINUX
+  QT_FORWARD_DECLARE_CLASS(VlcInstance)
+  QT_FORWARD_DECLARE_CLASS(VlcMedia)
+  QT_FORWARD_DECLARE_CLASS(VlcMediaPlayer)
+  QT_FORWARD_DECLARE_CLASS(VlcWidgetVideo)
+#endif
 
 class MainWindow : public QWidget
 {
@@ -48,7 +55,7 @@ public:
   static const int LeftRightAxis = 2;
   static const int SpeedAxis     = 3;
   static const int RollAxis      = 4;
-  static const int UpDownAxis    = 5;
+  static const int UpDownAxis    = 1;
 
   static const int InflateButton = 11;
   static const int DeflateButton = 9;
@@ -62,6 +69,8 @@ public slots:
   void serverDisconnected();
   void newDataAvailable();
   void updateWidgets();
+  void onStillAliveTimerTimeout();
+  void onWatchDogTimerTimeout();
 
 signals:
   void operate();
@@ -95,7 +104,7 @@ private:
 
   QHBoxLayout* pButtonRowLayout;
   QHBoxLayout* pBoxesLayout;
-  QVBoxLayout* pGLBoxLyout;
+  QVBoxLayout* pGLBoxLayout;
 
   QHBoxLayout* pMainLayout;
 
@@ -110,6 +119,19 @@ private:
   CGrCamera     camera;
   GLWidget*     pFrontWidget;
   QVector<Shimmer3Box*> boxes; // The graphical objects
+
+#ifdef Q_OS_LINUX
+  VlcInstance*    pVlcInstance;
+  VlcMedia*       pVlcMedia;
+  VlcMediaPlayer* pVlcPlayer;
+  VlcWidgetVideo* pVlcWidgetVideo;
+#endif
+
+  QSize           widgetSize;
+  QTimer          stillAliveTimer;
+  QTimer          watchDogTimer;
+  int             stillAliveTime;
+  int             watchDogTime;
 };
 
 #endif // MAINWINDOW_H

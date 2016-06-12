@@ -47,7 +47,7 @@
 
 
 GeometryEngine::GeometryEngine()
-  : objPath(":/ROV_1.obj")
+  : objPath(":/ROV_2.obj")
 {
 }
 
@@ -145,11 +145,10 @@ GeometryEngine::loadROVobj(QString path,
           return false;
         }
         vertexIndices.append(stringVals.at(0).toFloat());
-        if(stringVals.at(1) == "")
-          uvIndices    .append(1);
-        else
+        if(stringVals.at(1) != "")
           uvIndices    .append(stringVals.at(1).toFloat());
-        normalIndices.append(stringVals.at(2).toFloat());
+        if(stringVals.at(2) != "")
+          normalIndices.append(stringVals.at(2).toFloat());
       }
     }
 
@@ -157,7 +156,7 @@ GeometryEngine::loadROVobj(QString path,
       // Probably a comment skip the rest of the line
   }
   file.close();
-  qDebug() << min << max;
+//  qDebug() << min << max;
 
   // For each vertex of each triangle
   for(int i=0; i<vertexIndices.size(); i++) {
@@ -194,10 +193,6 @@ GeometryEngine::init() {
     exit(-1);
   }
   initializeGLFunctions();
-  // Generate 3 VBOs
-  vertexbuffer.create();
-  uvbuffer.create();
-  normalbuffer.create();
   // Initializes cube geometry and transfers it to VBOs
   initROVGeometry();
 }
@@ -206,16 +201,23 @@ GeometryEngine::init() {
 void
 GeometryEngine::initROVGeometry() {
   // Transfer vertex data to VBO 0
+  vertexbuffer.create();
   vertexbuffer.bind();
   vertexbuffer.allocate((void *)vertices.data(), vertices.size() * sizeof(QVector3D));
 
-  // Transfer normal data to VBO 1
-  normalbuffer.bind();
-  normalbuffer.allocate((void *)normals.data(), normals.size() * sizeof(QVector3D));
+  if(normals.size() > 0) {
+    normalbuffer.create();
+    // Transfer normal data to VBO 1
+    normalbuffer.bind();
+    normalbuffer.allocate((void *)normals.data(), normals.size() * sizeof(QVector3D));
+  }
 
-  // Transfer uv data to VBO 2
-  uvbuffer.bind();
-  uvbuffer.allocate((void *)uvs.data(), uvs.size() * sizeof(QVector2D));
+  if(uvs.size() > 0) {
+    uvbuffer.create();
+    // Transfer uv data to VBO 2
+    uvbuffer.bind();
+    uvbuffer.allocate((void *)uvs.data(), uvs.size() * sizeof(QVector2D));
+  }
 }
 
 
@@ -227,17 +229,21 @@ GeometryEngine::drawROVGeometry(QGLShaderProgram *program) {
   program->enableAttributeArray(vertexLocation);
   program->setAttributeBuffer(vertexLocation, GL_FLOAT, 0, 3, sizeof(QVector3D));
 
-  // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
-  uvbuffer.bind();
-  int texcoordLocation = program->attributeLocation("qt_MultiTexCoord0");
-  program->enableAttributeArray(texcoordLocation);
-  program->setAttributeBuffer(texcoordLocation, GL_FLOAT, 0, 2, sizeof(QVector2D));
+  if(uvs.size() > 0) {
+    // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
+    uvbuffer.bind();
+    int texcoordLocation = program->attributeLocation("qt_MultiTexCoord0");
+    program->enableAttributeArray(texcoordLocation);
+    program->setAttributeBuffer(texcoordLocation, GL_FLOAT, 0, 2, sizeof(QVector2D));
+  }
 
-  // Tell OpenGL programmable pipeline how to locate normals data
-  normalbuffer.bind();
-  int normcoordLocation = program->attributeLocation("vertexNormal_modelspace");
-  program->enableAttributeArray(normcoordLocation);
-  program->setAttributeBuffer(normcoordLocation, GL_FLOAT, 0, 3, sizeof(QVector3D));
+  if(normals.size() > 0) {
+      // Tell OpenGL programmable pipeline how to locate normals data
+      normalbuffer.bind();
+      int normcoordLocation = program->attributeLocation("vertexNormal_modelspace");
+      program->enableAttributeArray(normcoordLocation);
+      program->setAttributeBuffer(normcoordLocation, GL_FLOAT, 0, 3, sizeof(QVector3D));
+  }
 
   // Draw ROV geometry
   glDrawArrays(GL_TRIANGLES, 0, vertices.size());

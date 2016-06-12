@@ -1,9 +1,3 @@
-#ifdef GL_ES
-// Set default precision to medium
-precision mediump int;
-precision mediump float;
-#endif
-
 // Interpolated values from the vertex shaders
 in vec4 Position_worldspace;
 in vec4 Normal_cameraspace;

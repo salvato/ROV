@@ -48,6 +48,7 @@
 //#include "text.h"
 #include "shimmer3box.h"
 
+#define NO_MOUSE
 
 GLWidget::GLWidget(CGrCamera* myCamera, QWidget *parent)
   : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -123,8 +124,8 @@ GLWidget::initShaders() {
 void
 GLWidget::initTextures() {
   // Load the image
-   glEnable(GL_TEXTURE_2D);
-  texture = new QOpenGLTexture(QImage(":/ROV_1.png").mirrored());
+  glEnable(GL_TEXTURE_2D);
+  texture = new QOpenGLTexture(QImage(":/uvUnwrapROV_2.png").mirrored());
   // Set nearest filtering mode for texture minification
   // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   texture->setMinificationFilter(QOpenGLTexture::Nearest);
@@ -167,20 +168,9 @@ GLWidget::paintGL() {
     QVector3D(camera->UpX(),     camera->UpY(),     camera->UpZ())      // Head is up (set to 0,-1,0 to look upside-down)
   );
 
-//  // Use texture unit 0 which contains ROV.png
-//  program.setUniformValue("qt_Texture0", 0);
-
   program.setUniformValue("LightPosition_worldspace", lightPos);
 
   modelMatrix.setToIdentity();
-
-  if(fromSide == GLWidget::top) {
-  } else if(fromSide == GLWidget::bottom) {
-  } else if(fromSide == GLWidget::left) {
-  } else if(fromSide == GLWidget::right) {
-  } else if(fromSide == GLWidget::rear) {
-  } else if(fromSide == GLWidget::front) {
-  }
 
   Shimmer3Box *pSensor, *pSensor0;
 
@@ -191,26 +181,28 @@ GLWidget::paintGL() {
       pSensor = (*shimmerSensors)[i];
       // save the unrotated coordinate system.
       matrixStack.prepend(modelMatrix);
-      // Translate sensor in his position
-      modelMatrix.translate(pSensor->pos[0], pSensor->pos[1], pSensor->pos[2]);
+      // Draw the sensor with the right dimensions
+      float scale = 1.0/(geometries.max-geometries.min);
+      modelMatrix.scale(scale, scale, scale);
       if(i>0) {
         //Rotate around sensor center
         modelMatrix.rotate(-pSensor0->angle, pSensor0->x, pSensor0->y, pSensor0->z);
         modelMatrix.rotate( pSensor->angle, pSensor->x, pSensor->y, pSensor->z);
       }
-      // Draw the sensor with the right dimensions
-      float scale = 1.0/(geometries.max-geometries.min);
-      modelMatrix.scale(scale, scale, scale);
+      // Translate sensor in his position
+      modelMatrix.translate(pSensor->pos[0], pSensor->pos[1], pSensor->pos[2]);
+
+      normalMatrix = modelMatrix.inverted().transposed();
 
       // Set modelview-projection matrix
       mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+
       program.setUniformValue("mvp_Matrix",   mvpMatrix);
       program.setUniformValue("view_Matrix",  viewMatrix);
       program.setUniformValue("model_Matrix", modelMatrix);
-      modelMatrix = modelMatrix.inverted();
-      modelMatrix = modelMatrix.transposed();
-      program.setUniformValue("model_MatrixIT", modelMatrix);
+      program.setUniformValue("normal_Matrix", normalMatrix);
 
+      // Draw the ROV
       geometries.drawROVGeometry(&program);
       // restore the unrotated coordinate system.
       modelMatrix = matrixStack.takeFirst();
@@ -220,26 +212,26 @@ GLWidget::paintGL() {
     pSensor = (*shimmerSensors)[0];
     // save the unrotated coordinate system.
     matrixStack.prepend(modelMatrix);
-    // Translate sensor in his position
-    modelMatrix.translate(pSensor->pos[0], pSensor->pos[1], pSensor->pos[2]);
-    modelMatrix.rotate(pSensor->angle, pSensor->x, pSensor->y, pSensor->z);
     // Draw the sensor with the right dimensions
     float scale = 1.0/(geometries.max-geometries.min);
     modelMatrix.scale(scale, scale, scale);
+    // Rotate the sensor according to IMU's information
+    modelMatrix.rotate(pSensor->angle, pSensor->x, pSensor->y, pSensor->z);
+    // Translate sensor in his position
+    modelMatrix.translate(pSensor->pos[0], pSensor->pos[1], pSensor->pos[2]);
 
-    mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+    normalMatrix = modelMatrix.inverted().transposed();
 
     // Set modelview-projection matrix
+    mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+
     program.setUniformValue("mvp_Matrix",   mvpMatrix);
     program.setUniformValue("view_Matrix",  viewMatrix);
     program.setUniformValue("model_Matrix", modelMatrix);
-    modelMatrix = modelMatrix.inverted();
-    modelMatrix = modelMatrix.transposed();
-    program.setUniformValue("model_MatrixIT", modelMatrix);
+    program.setUniformValue("normal_Matrix", normalMatrix);
 
-    // Draw the geometry
+    // Draw the ROV
     geometries.drawROVGeometry(&program);
-
     // restore the unrotated coordinate system.
     modelMatrix = matrixStack.takeFirst();
 
@@ -270,6 +262,7 @@ GLWidget::setSide(side from) {
 void
 GLWidget::mousePressEvent(QMouseEvent *event) {
   Q_UNUSED(event)
+#ifndef NO_MOUSE
   if (event->buttons() & Qt::RightButton) {
     lastPos = event->pos();
     camera->MouseDown(event->x(), event->y());
@@ -280,12 +273,14 @@ GLWidget::mousePressEvent(QMouseEvent *event) {
     camera->MouseDown(event->x(), event->y());
     event->accept();
   }
+#endif
 }
 
 
 void
 GLWidget::mouseReleaseEvent(QMouseEvent *event) {
   Q_UNUSED(event)
+#ifndef NO_MOUSE
   if (event->button() & Qt::RightButton) {
     camera->MouseMode(CGrCamera::PITCHYAW);
     event->accept();
@@ -293,12 +288,14 @@ GLWidget::mouseReleaseEvent(QMouseEvent *event) {
     camera->MouseMode(CGrCamera::PITCHYAW);
     event->accept();
   }
+#endif
 }
 
 
 void
 GLWidget::mouseMoveEvent(QMouseEvent *event) {
   Q_UNUSED(event)
+#ifndef NO_MOUSE
   if (event->buttons() & Qt::LeftButton) {
     camera->MouseMove(event->x(), event->y());
     event->accept();
@@ -308,6 +305,7 @@ GLWidget::mouseMoveEvent(QMouseEvent *event) {
     event->accept();
     emit windowUpdated();
   }
+#endif
 }
 
 

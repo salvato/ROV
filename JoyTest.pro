@@ -4,15 +4,16 @@
 #
 #-------------------------------------------------
 
+TARGET = JoyTest
+TEMPLATE = app
+CONFIG 	   += c++11
+
 QT       += core
 QT       += gui
 QT       += multimedia
 QT       += opengl
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-TARGET = JoyTest
-TEMPLATE = app
 
 
 SOURCES += main.cpp\
@@ -36,5 +37,12 @@ RESOURCES += \
     shaders.qrc \
     textures.qrc \
     otherresources.qrc
+
+
+# Edit below for custom library location
+unix {
+LIBS       += -L/usr/local/lib -lVLCQtCore -lVLCQtWidgets
+INCLUDEPATH += /usr/local/lib include
+}
 
 DISTFILES +=

@@ -20,6 +20,14 @@
 #include <QVBoxLayout>
 #include <QCheckBox>
 
+#ifdef Q_OS_LINUX
+  #include <VLCQtCore/Common.h>
+  #include <VLCQtCore/Instance.h>
+  #include <VLCQtCore/Media.h>
+  #include <VLCQtCore/MediaPlayer.h>
+  #include <VLCQtWidgets/WidgetVideo.h>
+#endif
+
 #include "mainwindow.h"
 #include "joystickevent.h"
 #include "joystick.h"
@@ -42,9 +50,38 @@ MainWindow::MainWindow(QWidget *parent)
   , pMainLayout(NULL)
   , pJoystickEvent(NULL)
   , pJoystick(NULL)
+#ifdef Q_OS_LINUX
+  , pVlcInstance(NULL)
+  , pVlcMedia(NULL)
+  , pVlcPlayer(NULL)
+  , pVlcWidgetVideo(NULL)
+#endif
+  , widgetSize(QSize(400, 300))
+  , stillAliveTime(300)// in ms
+  , watchDogTime(1000)
 {
   // Create an instance of Joystick
   pJoystick = new Joystick("/dev/input/js0");
+
+#ifdef Q_OS_LINUX
+  // The following is mandatory for using VLC-Qt and all its other classes.
+  pVlcInstance = new VlcInstance(VlcCommon::args(), this);
+
+  //pVlcInstance->setLogLevel(Vlc::DebugLevel);
+  //pVlcInstance->setLogLevel(Vlc::ErrorLevel);
+  pVlcInstance->setLogLevel(Vlc::DisabledLevel);
+
+  // A basic MediaPlayer manager for VLC-Qt library.
+  // It provides main playback controls.
+  // This is mandatory to use libvlc playback functions.
+  pVlcPlayer = new VlcMediaPlayer(pVlcInstance);
+
+  pVlcWidgetVideo = new VlcWidgetVideo(pVlcPlayer, this);
+  pVlcWidgetVideo->setFixedSize(widgetSize);
+  //pVlcWidgetVideo->setAspectRatio(Vlc::R_4_3);
+
+  pVlcPlayer->setVideoWidget(pVlcWidgetVideo);
+#endif
 
   initCamera();
   initWidgets();
@@ -52,21 +89,54 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Widgets events
   connect(pFrontWidget, SIGNAL(windowUpdated()), this, SLOT(updateWidgets()));
-
   connect(pEditHostName, SIGNAL(returnPressed()), this, SLOT(connectToClient()));
   connect(pButtonConnect, SIGNAL(clicked()), this, SLOT(connectToClient()));
+
   // Network events
   connect(&tcpClient, SIGNAL(connected()), this, SLOT(serverConnected()));
   connect(&tcpClient, SIGNAL(disconnected()), this, SLOT(serverDisconnected()));
   connect(&tcpClient, SIGNAL(readyRead()), this, SLOT(newDataAvailable()));
   connect(&tcpClient, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(displayError(QAbstractSocket::SocketError)));
+
+  // Watchdog Timer event s
+  connect(&stillAliveTimer, SIGNAL(timeout()), this, SLOT(onStillAliveTimerTimeout()));
+  connect(&watchDogTimer,   SIGNAL(timeout()), this, SLOT(onWatchDogTimerTimeout()));
+  stillAliveTimer.start(stillAliveTime);
 }
 
 
 MainWindow::~MainWindow() {
+  stillAliveTimer.stop();
+  watchDogTimer.stop();
   pJoystick->bStopSampling = true;
   joystickThread.quit();
   joystickThread.wait(3000);
+#ifdef Q_OS_LINUX
+  delete pVlcWidgetVideo;
+  delete pVlcPlayer;
+  delete pVlcMedia;
+  delete pVlcInstance;
+#endif
+}
+
+
+void
+MainWindow::onStillAliveTimerTimeout() {
+  if(tcpClient.isOpen()) {
+    message.clear();
+    message.append(char(126));
+    message.append(char(126));
+    tcpClient.write(message);
+  }
+}
+
+
+void
+MainWindow::onWatchDogTimerTimeout() {
+  if(tcpClient.isOpen()) {
+    tcpClient.close();
+    console.appendPlainText("Timeout in getting data from ROV");
+  }
 }
 
 
@@ -91,13 +161,13 @@ MainWindow::initWidgets() {
   boxes.clear();
   boxes.append(new Shimmer3Box());
   pFrontWidget = new GLWidget(&camera, this);
-//  pFrontWidget->setSide(GLWidget::rear);
-  //     Set(eyePosX,  eyePosY, eyePosZ, centerX, centerY, centerZ, upX, upY, upZ)
   camera.Set(-2.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0, 0.0, 1.0);
   pFrontWidget->lightPos = QVector4D(-2800, -2800, 2800, 1.0);
 
   pFrontWidget->setShimmerBoxes(&boxes);
-  updateWidgets();
+  pFrontWidget->setFixedSize(widgetSize);
+
+//  updateWidgets();
 }
 
 
@@ -157,12 +227,15 @@ MainWindow::initLayout() {
   pButtonResetOrientation->setEnabled(false);
   pButtonSwitchOff->setEnabled(false);
 
-  pGLBoxLyout = new QVBoxLayout();
-  pGLBoxLyout->addWidget(pFrontWidget);
-  pGLBoxLyout->addLayout(pButtonRowLayout);
+  pGLBoxLayout = new QVBoxLayout();
+  pGLBoxLayout->addWidget(pFrontWidget);
+#ifdef Q_OS_LINUX
+  pGLBoxLayout->addWidget(pVlcWidgetVideo);
+#endif
+  pGLBoxLayout->addLayout(pButtonRowLayout);
 
   pMainLayout->addLayout(pLeftLayout);
-  pMainLayout->addLayout(pGLBoxLyout);
+  pMainLayout->addLayout(pGLBoxLayout);
   setLayout(pMainLayout);
 
 }
@@ -185,10 +258,19 @@ MainWindow::handleLookup(QHostInfo hostInfo) {
   // Handle the results.
   if(hostInfo.error() == QHostInfo::NoError) {
     serverAddress = hostInfo.addresses().first();
-    console.appendPlainText("Connecting to: " + serverAddress.toString());
+    console.appendPlainText("Connecting to: " + hostInfo.hostName());
     bytesWritten = 0;
     bytesReceived = 0;
     tcpClient.connectToHost(serverAddress, 43210);
+#ifdef Q_OS_LINUX
+      if(pVlcMedia) {
+        delete pVlcMedia;
+        pVlcMedia = NULL;
+      }
+      QString url = QString("http://") + hostInfo.hostName() + QString(":8080/?action=stream");
+      pVlcMedia = new VlcMedia(url, pVlcInstance);
+      pVlcPlayer->open(pVlcMedia);
+#endif
   } else {
     console.appendPlainText(hostInfo.errorString());
     pButtonConnect->setEnabled(true);
@@ -216,6 +298,7 @@ MainWindow::serverConnected() {
   console.appendPlainText("Connected");
   pButtonConnect->setText("Disconnect");
   pButtonConnect->setEnabled(true);
+  watchDogTimer.start(watchDogTime);
 }
 
 
@@ -224,6 +307,7 @@ MainWindow::serverDisconnected() {
   console.appendPlainText("Disconnected");
   pButtonConnect->setText("Connect");
   pEditHostName->setEnabled(true);
+  watchDogTimer.stop();
 }
 
 
@@ -235,7 +319,7 @@ MainWindow::newDataAvailable() {
   iPos = receivedCommand.indexOf("#");
   while(iPos != -1) {
     sNewCommand = receivedCommand.left(iPos);
-////    console.appendPlainText(sNewCommand + " Received");
+    //console.appendPlainText(sNewCommand + " Received");
     executeCommand(sNewCommand);
     receivedCommand = receivedCommand.mid(iPos+1);
     iPos = receivedCommand.indexOf("#");
@@ -245,8 +329,8 @@ MainWindow::newDataAvailable() {
 
 void
 MainWindow::executeCommand(QString command) {
-  QStringList tokens = command.split(' ');
   if(command.contains(QString("box_pos"))) {
+    QStringList tokens = command.split(' ');
     tokens.removeFirst();
     if(tokens.count() == 8) {
       int iSensorNumber = tokens.at(0).toInt();
@@ -267,6 +351,8 @@ MainWindow::executeCommand(QString command) {
         updateWidgets();
       }
     }
+  } else if(command.contains(QString("alive"))) {
+        watchDogTimer.start(watchDogTime);
   }
 }
 

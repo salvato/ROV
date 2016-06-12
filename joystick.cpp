@@ -56,10 +56,10 @@ Joystick::~Joystick() {
 
 void
 Joystick::openPath(std::string devicePath) {
-#ifdef WIN32
-  _fd = open(devicePath.c_str(), O_RDONLY);
-#else
+#ifdef Q_OS_LINUX
   _fd = open(devicePath.c_str(), O_RDONLY | O_NONBLOCK);
+#else
+  _fd = open(devicePath.c_str(), O_RDONLY);
 #endif
 }
 

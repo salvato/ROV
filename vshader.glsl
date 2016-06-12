@@ -1,18 +1,12 @@
-#ifdef GL_ES
-// Set default precision to medium
-precision mediump int;
-precision mediump float;
-#endif
-
 attribute vec3 qt_Vertex;
 attribute vec3 vertexNormal_modelspace;
-//attribute vec2 qt_MultiTexCoord0;
+attribute vec2 qt_MultiTexCoord0;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 mvp_Matrix;
 uniform mat4 view_Matrix;
 uniform mat4 model_Matrix;
-uniform mat4 model_MatrixIT;
+uniform mat4 normal_Matrix;
 uniform vec4 LightPosition_worldspace;
 
 //// Output data ; will be interpolated for each fragment.
@@ -43,9 +37,9 @@ main(void) {
     // Normal of the the vertex, in camera space
     // Only correct if ModelMatrix does not scale the model !
     // Use its inverse transpose if not.
-    Normal_cameraspace = view_Matrix * model_MatrixIT * vec4(vertexNormal_modelspace, 1.0);
+    Normal_cameraspace = view_Matrix * normal_Matrix * vec4(vertexNormal_modelspace, 1.0);
 
     // Pass texture coordinate to fragment shader
     // Value will be automatically interpolated to fragments inside polygon faces
-    qt_TexCoord0 = qt_TexCoord0;
+    qt_TexCoord0 = qt_MultiTexCoord0;
 }

@@ -112,6 +112,7 @@ private:
 
   QMatrix4x4 projectionMatrix;
   QMatrix4x4 modelMatrix;
+  QMatrix4x4 normalMatrix;
   QMatrix4x4 viewMatrix;
   QMatrix4x4 mvpMatrix;
   QList<QMatrix4x4> matrixStack;
