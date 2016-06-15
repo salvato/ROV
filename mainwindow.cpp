@@ -58,7 +58,7 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
   , widgetSize(QSize(400, 300))
   , stillAliveTime(300)// in ms
-  , watchDogTime(1000)
+  , watchDogTime(30000)
 {
   // Create an instance of Joystick
   pJoystick = new Joystick("/dev/input/js0");
