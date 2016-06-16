@@ -65,7 +65,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef Q_OS_LINUX
   // The following is mandatory for using VLC-Qt and all its other classes.
-  pVlcInstance = new VlcInstance(VlcCommon::args(), this);
+  QStringList arguments = VlcCommon::args();
+  arguments.append(QString("--network-caching=100"));
+  pVlcInstance = new VlcInstance(arguments, this);
 
   //pVlcInstance->setLogLevel(Vlc::DebugLevel);
   //pVlcInstance->setLogLevel(Vlc::ErrorLevel);
