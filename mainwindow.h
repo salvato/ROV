@@ -72,6 +72,7 @@ public slots:
   void updateWidgets();
   void onStillAliveTimerTimeout();
   void onWatchDogTimerTimeout();
+  void startSopRecording();
 
 signals:
   void operate();
@@ -93,7 +94,7 @@ private:
   QLineEdit*   pEditHostName;
   QPushButton* pButtonConnect;
 
-  QPushButton*  pButtonSetOrientation;
+  QPushButton*  pButtonRecording;
   QPushButton*  pButtonResetOrientation;
   QPushButton*  pButtonSwitchOff;
 
@@ -127,6 +128,7 @@ private:
   VlcMedia*       pVlcMedia;
   VlcMediaPlayer* pVlcPlayer;
   VlcWidgetVideo* pVlcWidgetVideo;
+  QString         sVideoURL;
 #endif
 
   QSize           widgetSize;

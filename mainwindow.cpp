@@ -67,12 +67,12 @@ MainWindow::MainWindow(QWidget *parent)
   // The following is mandatory for using VLC-Qt and all its other classes.
   QStringList arguments = VlcCommon::args();
   arguments.append(QString("--network-caching=100"));
-  QString sFileName = QString("/home/gabriele/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
-  qDebug() << sFileName;
-  sFileName.replace(" ", "_");
-  QString argument = QString("--sout=#duplicate{dst=std{access=file,mux=avi,dst='") + sFileName + QString("'},dst=display}");
-  qDebug() << argument;
-  arguments.append(argument);
+//  QString sFileName = QString("/home/gabriele/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
+//  qDebug() << sFileName;
+//  sFileName.replace(" ", "_");
+//  QString argument = QString("--sout=#duplicate{dst=std{access=file,mux=avi,dst='") + sFileName + QString("'},dst=display}");
+//  qDebug() << argument;
+//  arguments.append(argument);
   pVlcInstance = new VlcInstance(arguments, this);
 
 //  pVlcInstance->setLogLevel(Vlc::DebugLevel);
@@ -84,9 +84,9 @@ MainWindow::MainWindow(QWidget *parent)
   // This is mandatory to use libvlc playback functions.
   pVlcPlayer = new VlcMediaPlayer(pVlcInstance);
 
-  pVlcWidgetVideo = new VlcWidgetVideo(pVlcPlayer, this);
+  pVlcWidgetVideo = new VlcWidgetVideo(this);
+  pVlcWidgetVideo->setMediaPlayer(pVlcPlayer);
   pVlcWidgetVideo->setFixedSize(widgetSize);
-  //pVlcWidgetVideo->setAspectRatio(Vlc::R_4_3);
 
   pVlcPlayer->setVideoWidget(pVlcWidgetVideo);
 #endif
@@ -99,6 +99,9 @@ MainWindow::MainWindow(QWidget *parent)
   connect(pFrontWidget, SIGNAL(windowUpdated()), this, SLOT(updateWidgets()));
   connect(pEditHostName, SIGNAL(returnPressed()), this, SLOT(connectToClient()));
   connect(pButtonConnect, SIGNAL(clicked()), this, SLOT(connectToClient()));
+#ifdef Q_OS_LINUX
+  connect(pButtonRecording, SIGNAL(clicked()), this, SLOT(startSopRecording()));
+#endif
 
   // Network events
   connect(&tcpClient, SIGNAL(connected()), this, SLOT(serverConnected()));
@@ -106,9 +109,10 @@ MainWindow::MainWindow(QWidget *parent)
   connect(&tcpClient, SIGNAL(readyRead()), this, SLOT(newDataAvailable()));
   connect(&tcpClient, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(displayError(QAbstractSocket::SocketError)));
 
-  // Watchdog Timer event s
+  // Watchdog Timer events
   connect(&stillAliveTimer, SIGNAL(timeout()), this, SLOT(onStillAliveTimerTimeout()));
   connect(&watchDogTimer,   SIGNAL(timeout()), this, SLOT(onWatchDogTimerTimeout()));
+
   stillAliveTimer.start(stillAliveTime);
 }
 
@@ -227,13 +231,13 @@ MainWindow::initLayout() {
   pLeftLayout->addWidget(&console);
 
   pButtonRowLayout = new QHBoxLayout;
-  pButtonSetOrientation   = new QPushButton("Set Pos");
+  pButtonRecording   = new QPushButton("StartRec");
   pButtonResetOrientation = new QPushButton("Reset Pos");
   pButtonSwitchOff        = new QPushButton("Switch Off");
-  pButtonRowLayout->addWidget(pButtonSetOrientation);
+  pButtonRowLayout->addWidget(pButtonRecording);
   pButtonRowLayout->addWidget(pButtonResetOrientation);
   pButtonRowLayout->addWidget(pButtonSwitchOff);
-  pButtonSetOrientation->setEnabled(false);
+  pButtonRecording->setEnabled(false);
   pButtonResetOrientation->setEnabled(false);
   pButtonSwitchOff->setEnabled(false);
 
@@ -277,8 +281,8 @@ MainWindow::handleLookup(QHostInfo hostInfo) {
         delete pVlcMedia;
         pVlcMedia = NULL;
       }
-      QString url = QString("http://") + hostInfo.hostName() + QString(":8080/?action=stream");
-      pVlcMedia = new VlcMedia(url, pVlcInstance);
+      sVideoURL = QString("http://") + hostInfo.hostName() + QString(":8080/?action=stream");
+      pVlcMedia = new VlcMedia(sVideoURL, pVlcInstance);
       pVlcPlayer->open(pVlcMedia);
 #endif
   } else {
@@ -308,6 +312,9 @@ MainWindow::serverConnected() {
   console.appendPlainText("Connected");
   pButtonConnect->setText("Disconnect");
   pButtonConnect->setEnabled(true);
+#ifdef Q_OS_LINUX
+  pButtonRecording->setEnabled(true);
+#endif
   watchDogTimer.start(watchDogTime);
 }
 
@@ -317,6 +324,11 @@ MainWindow::serverDisconnected() {
   console.appendPlainText("Disconnected");
   pButtonConnect->setText("Connect");
   pEditHostName->setEnabled(true);
+#ifdef Q_OS_LINUX
+  pVlcPlayer->stop();
+#endif
+  pButtonRecording->setEnabled(false);
+  pButtonRecording->setText("StartRec");
   watchDogTimer.stop();
 }
 
@@ -426,3 +438,43 @@ MainWindow::onJoystickMessage(JoystickEvent* pEvent) {
   }
 }
 
+
+void
+MainWindow::startSopRecording() {
+  pVlcPlayer->stop();
+  if(pVlcMedia) {
+    delete pVlcMedia;
+    pVlcMedia = NULL;
+  }
+  VlcInstance* pNewVlcInstance = NULL;
+  VlcMediaPlayer* pNewVlcPlayer = NULL;
+  QStringList arguments = VlcCommon::args();
+  arguments.append(QString("--network-caching=100"));
+  if(pButtonRecording->text() == tr("StartRec")) {
+    // The following is mandatory for using VLC-Qt and all its other classes.
+    QString sFileName = QString("/home/gabriele/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
+    sFileName.replace(" ", "_");
+    qDebug() << sFileName;
+    QString argument = QString("--sout=#duplicate{dst=std{access=file,mux=avi,dst='") + sFileName + QString("'},dst=display}");
+    qDebug() << argument;
+    arguments.append(argument);
+
+    pNewVlcInstance = new VlcInstance(arguments, this);
+    pNewVlcPlayer = new VlcMediaPlayer(pNewVlcInstance);
+    pVlcWidgetVideo->setMediaPlayer(pNewVlcPlayer);
+    pNewVlcPlayer->setVideoWidget(pVlcWidgetVideo);
+    pButtonRecording->setText("StopRec");
+  } else {//pButtonConnect->text() == tr("StopRec")
+    pNewVlcInstance = new VlcInstance(arguments, this);
+    pNewVlcPlayer = new VlcMediaPlayer(pNewVlcInstance);
+    pVlcWidgetVideo->setMediaPlayer(pNewVlcPlayer);
+    pNewVlcPlayer->setVideoWidget(pVlcWidgetVideo);
+    pButtonRecording->setText("StartRec");
+  }
+  delete pVlcPlayer;
+  delete pVlcInstance;
+  pVlcPlayer = pNewVlcPlayer;
+  pVlcInstance = pNewVlcInstance;
+  pVlcMedia = new VlcMedia(sVideoURL, pVlcInstance);
+  pVlcPlayer->open(pVlcMedia);
+}
