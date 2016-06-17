@@ -67,10 +67,16 @@ MainWindow::MainWindow(QWidget *parent)
   // The following is mandatory for using VLC-Qt and all its other classes.
   QStringList arguments = VlcCommon::args();
   arguments.append(QString("--network-caching=100"));
+  QString sFileName = QString("/home/gabriele/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
+  qDebug() << sFileName;
+  sFileName.replace(" ", "_");
+  QString argument = QString("--sout=#duplicate{dst=std{access=file,mux=avi,dst='") + sFileName + QString("'},dst=display}");
+  qDebug() << argument;
+  arguments.append(argument);
   pVlcInstance = new VlcInstance(arguments, this);
 
-  //pVlcInstance->setLogLevel(Vlc::DebugLevel);
-  //pVlcInstance->setLogLevel(Vlc::ErrorLevel);
+//  pVlcInstance->setLogLevel(Vlc::DebugLevel);
+//  pVlcInstance->setLogLevel(Vlc::ErrorLevel);
   pVlcInstance->setLogLevel(Vlc::DisabledLevel);
 
   // A basic MediaPlayer manager for VLC-Qt library.
@@ -114,6 +120,8 @@ MainWindow::~MainWindow() {
   joystickThread.quit();
   joystickThread.wait(3000);
 #ifdef Q_OS_LINUX
+  qDebug() << "Stop Recording";
+  pVlcPlayer->stop();
   delete pVlcWidgetVideo;
   delete pVlcPlayer;
   delete pVlcMedia;

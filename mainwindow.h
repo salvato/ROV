@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QDateTime>
 #include <QThread>
 #include <QTcpSocket>
 #include <QHostAddress>
@@ -78,6 +79,7 @@ signals:
 private:
   QTcpSocket tcpClient;
   QHostAddress serverAddress;
+  QDateTime     dateTime;
 
   int bytesWritten;
   int bytesReceived;
