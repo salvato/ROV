@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent)
   , pVlcPlayer(NULL)
   , pVlcWidgetVideo(NULL)
 #endif
-  , widgetSize(QSize(400, 300))
+  , widgetSize(QSize(440, 330))
   , stillAliveTime(300)// in ms
   , watchDogTime(30000)
 {
@@ -67,21 +67,12 @@ MainWindow::MainWindow(QWidget *parent)
   // The following is mandatory for using VLC-Qt and all its other classes.
   QStringList arguments = VlcCommon::args();
   arguments.append(QString("--network-caching=100"));
-//  QString sFileName = QString("/home/gabriele/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
-//  qDebug() << sFileName;
-//  sFileName.replace(" ", "_");
-//  QString argument = QString("--sout=#duplicate{dst=std{access=file,mux=avi,dst='") + sFileName + QString("'},dst=display}");
-//  qDebug() << argument;
-//  arguments.append(argument);
-  pVlcInstance = new VlcInstance(arguments, this);
 
+  pVlcInstance = new VlcInstance(arguments, this);
 //  pVlcInstance->setLogLevel(Vlc::DebugLevel);
 //  pVlcInstance->setLogLevel(Vlc::ErrorLevel);
   pVlcInstance->setLogLevel(Vlc::DisabledLevel);
 
-  // A basic MediaPlayer manager for VLC-Qt library.
-  // It provides main playback controls.
-  // This is mandatory to use libvlc playback functions.
   pVlcPlayer = new VlcMediaPlayer(pVlcInstance);
 
   pVlcWidgetVideo = new VlcWidgetVideo(this);
