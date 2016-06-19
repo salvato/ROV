@@ -211,16 +211,6 @@ MainWindow::initLayout() {
   pButtonRow->addWidget(pEditHostName);
   pButtonRow->addWidget(pButtonConnect);
 
-  pLeftLayout->addLayout(pAngleRow);
-  pLeftLayout->addLayout(pButtonRow);
-  console.setReadOnly(true);
-  console.document()->setMaximumBlockCount(100);
-  QPalette p = palette();
-  p.setColor(QPalette::Base, Qt::darkBlue);
-  p.setColor(QPalette::Text, Qt::white);
-  console.setPalette(p);
-  pLeftLayout->addWidget(&console);
-
   pButtonRowLayout = new QHBoxLayout;
   pButtonRecording   = new QPushButton("StartRec");
   pButtonResetOrientation = new QPushButton("Reset Pos");
@@ -232,12 +222,22 @@ MainWindow::initLayout() {
   pButtonResetOrientation->setEnabled(false);
   pButtonSwitchOff->setEnabled(false);
 
+  pLeftLayout->addLayout(pAngleRow);
+  pLeftLayout->addLayout(pButtonRow);
+  pLeftLayout->addLayout(pButtonRowLayout);
+  console.setReadOnly(true);
+  console.document()->setMaximumBlockCount(100);
+  QPalette p = palette();
+  p.setColor(QPalette::Base, Qt::darkBlue);
+  p.setColor(QPalette::Text, Qt::white);
+  console.setPalette(p);
+  pLeftLayout->addWidget(&console);
+
   pGLBoxLayout = new QVBoxLayout();
   pGLBoxLayout->addWidget(pFrontWidget);
 #ifdef Q_OS_LINUX
   pGLBoxLayout->addWidget(pVlcWidgetVideo);
 #endif
-  pGLBoxLayout->addLayout(pButtonRowLayout);
 
   pMainLayout->addLayout(pLeftLayout);
   pMainLayout->addLayout(pGLBoxLayout);
