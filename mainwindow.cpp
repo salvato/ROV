@@ -66,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef Q_OS_LINUX
   // The following is mandatory for using VLC-Qt and all its other classes.
   QStringList arguments = VlcCommon::args();
-  arguments.append(QString("--network-caching=100"));
+  arguments.append(QString("--network-caching=200"));
 
   pVlcInstance = new VlcInstance(arguments, this);
 //  pVlcInstance->setLogLevel(Vlc::DebugLevel);
@@ -440,10 +440,10 @@ MainWindow::startSopRecording() {
   VlcInstance* pNewVlcInstance = NULL;
   VlcMediaPlayer* pNewVlcPlayer = NULL;
   QStringList arguments = VlcCommon::args();
-  arguments.append(QString("--network-caching=100"));
+  arguments.append(QString("--network-caching=200"));
   if(pButtonRecording->text() == tr("StartRec")) {
     // The following is mandatory for using VLC-Qt and all its other classes.
-    QString sFileName = QString("/home/gabriele/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
+    QString sFileName = QString("/home/rov/Video/ROV_") + dateTime.currentDateTime().toString() + QString(".avi");
     sFileName.replace(" ", "_");
     qDebug() << sFileName;
     QString argument = QString("--sout=#duplicate{dst=std{access=file,mux=avi,dst='") + sFileName + QString("'},dst=display}");
