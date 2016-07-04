@@ -190,20 +190,30 @@ MainWindow::initLayout() {
   pDirection   = new QDial();
   pDirection->setRange(-15, 15);
 
-  pPitch       = new QSlider();
 
-  //pPitch->setRange(JoystickEvent::MIN_AXES_VALUE, JoystickEvent::MAX_AXES_VALUE);
-  pPitch->setRange(-10, 10);
+  pUpDown      = new QSlider();
+  pUpDown->setRange(-10, 10);
+  pUpDown->setInvertedAppearance(true);
+
+  pPitch       = new QDial();
+  pPitch->setRange(-15, 15);
 
   pEditHostName         = new QLineEdit("192.168.1.123", this);
   pButtonConnect        = new QPushButton("Connect", this);
   pCheckInflate         = new QCheckBox("Inflate");
   pCheckDeflate         = new QCheckBox("Deflate");
 
-  pAngleRow->addWidget(pSpeed,     0, Qt::AlignCenter);
-  pAngleRow->addWidget(pDirection, 0, Qt::AlignCenter);
+  pSpeedRowLayout    = new QHBoxLayout;
+  pSpeedRowLayout->addWidget(pSpeed,     0, Qt::AlignCenter);
+  pSpeedRowLayout->addWidget(pDirection, 0, Qt::AlignCenter);
+
+  pThrustersRowLayout = new QHBoxLayout;
+  pThrustersRowLayout->addWidget(pUpDown,    0, Qt::AlignCenter);
+  pThrustersRowLayout->addWidget(pPitch,     0, Qt::AlignCenter);
+
+  pAngleRow->addLayout(pSpeedRowLayout);
   pAngleRow->addSpacing(10);
-  pAngleRow->addWidget(pPitch,     0, Qt::AlignCenter);
+  pAngleRow->addLayout(pThrustersRowLayout);
   pAngleRow->addSpacing(10);
   pAngleRow->addWidget(pCheckInflate, 0, Qt::AlignCenter);
   pAngleRow->addWidget(pCheckDeflate, 0, Qt::AlignCenter);
@@ -392,41 +402,47 @@ MainWindow::start() {
 
 void
 MainWindow::onJoystickMessage(JoystickEvent* pEvent) {
-  message.clear();
-  if (pEvent->isButton()) {
-    if(pEvent->number == InflateButton) {//Inflate Button
-      pCheckInflate->setChecked(pEvent->value ? true : false);
-      message.append(char(pEvent->number+100));
-      message.append(char(pEvent->value));
-      if(tcpClient.isOpen()) tcpClient.write(message);
+    message.clear();
+    if (pEvent->isButton()) {
+        if(pEvent->number == InflateButton) {//Inflate Button
+          pCheckInflate->setChecked(pEvent->value ? true : false);
+          message.append(char(pEvent->number+100));
+          message.append(char(pEvent->value));
+          if(tcpClient.isOpen()) tcpClient.write(message);
+        }
+        else if(pEvent->number == DeflateButton) {//Deflate Button
+          pCheckDeflate->setChecked(pEvent->value ? true : false);
+          message.append(char(pEvent->number+100));
+          message.append(char(pEvent->value));
+          if(tcpClient.isOpen()) tcpClient.write(message);
+        }
     }
-    else if(pEvent->number == DeflateButton) {//Deflate Button
-      pCheckDeflate->setChecked(pEvent->value ? true : false);
-      message.append(char(pEvent->number+100));
-      message.append(char(pEvent->value));
-      if(tcpClient.isOpen()) tcpClient.write(message);
+    else if (pEvent->isAxis()) {
+      if(pEvent->number == upDownAxis) {//Left stick Y
+          pUpDown->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
+          message.append(char(pEvent->number));
+          message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
+          if(tcpClient.isOpen()) tcpClient.write(message);
+      }
+      if(pEvent->number == pitchAxis) {//Left stick X
+          pPitch->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
+          message.append(char(pEvent->number));
+          message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
+          if(tcpClient.isOpen()) tcpClient.write(message);
+      }
+      else if(pEvent->number == SpeedAxis) {//Right stick Up/Down (Motor Speed)
+          pSpeed->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
+          message.append(char(pEvent->number));
+          message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
+          if(tcpClient.isOpen()) tcpClient.write(message);
+      }
+      else if(pEvent->number == LeftRightAxis) {//Right stick Left/Right (Motor Speed)
+          pDirection->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
+          message.append(char(pEvent->number));
+          message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
+          if(tcpClient.isOpen()) tcpClient.write(message);
+      }
     }
-  }
-  else if (pEvent->isAxis()) {
-    if(pEvent->number == UpDownAxis) {//Pitch Accelerometer
-      pPitch->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
-      message.append(char(pEvent->number));
-      message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
-      if(tcpClient.isOpen()) tcpClient.write(message);
-    }
-    else if(pEvent->number == SpeedAxis) {//Right stick Up/Down (Motor Speed)
-      pSpeed->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
-      message.append(char(pEvent->number));
-      message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
-      if(tcpClient.isOpen()) tcpClient.write(message);
-    }
-    else if(pEvent->number == LeftRightAxis) {//Right stick Left/Right (Motor Speed)
-      pDirection->setValue(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE);
-      message.append(char(pEvent->number));
-      message.append(char(pEvent->value*10/JoystickEvent::MAX_AXES_VALUE));
-      if(tcpClient.isOpen()) tcpClient.write(message);
-    }
-  }
 }
 
 

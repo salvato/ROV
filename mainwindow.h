@@ -53,10 +53,11 @@ public:
   static const int noError = -1;
   static const int joystickNotFoundError = -1;
 
+  static const int upDownAxis    = 0;
+  static const int pitchAxis     = 1;
   static const int LeftRightAxis = 2;
   static const int SpeedAxis     = 3;
   static const int RollAxis      = 4;
-  static const int UpDownAxis    = 1;
 
   static const int InflateButton = 11;
   static const int DeflateButton = 9;
@@ -89,7 +90,8 @@ private:
 
   QSlider* pSpeed;
   QDial*   pDirection;
-  QSlider* pPitch;
+  QSlider* pUpDown;
+  QDial*   pPitch;
 
   QLineEdit*   pEditHostName;
   QPushButton* pButtonConnect;
@@ -100,6 +102,9 @@ private:
 
   QCheckBox*   pCheckInflate;
   QCheckBox*   pCheckDeflate;
+
+  QHBoxLayout* pSpeedRowLayout;
+  QHBoxLayout* pThrustersRowLayout;
 
   QVBoxLayout* pAngleRow;
   QHBoxLayout* pButtonRow;
