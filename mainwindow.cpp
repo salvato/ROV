@@ -59,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
   , widgetSize(QSize(440, 330))
   , stillAliveTime(300)// in ms
   , watchDogTime(30000)
+  , getDepthTime(300)
 {
   // Create an instance of Joystick
   pJoystick = new Joystick("/dev/input/js0");
@@ -88,8 +89,9 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Widgets events
   connect(pFrontWidget, SIGNAL(windowUpdated()), this, SLOT(updateWidgets()));
-  connect(pEditHostName, SIGNAL(returnPressed()), this, SLOT(connectToClient()));
-  connect(pButtonConnect, SIGNAL(clicked()), this, SLOT(connectToClient()));
+  connect(pEditHostName, SIGNAL(returnPressed()), this, SLOT(onConnectToClient()));
+  connect(pButtonConnect, SIGNAL(clicked()), this, SLOT(onConnectToClient()));
+  connect(pButtonResetOrientation, SIGNAL(clicked(bool)), this, SLOT(onResetOrientation()));
 #ifdef Q_OS_LINUX
   connect(pButtonRecording, SIGNAL(clicked()), this, SLOT(startSopRecording()));
 #endif
@@ -103,6 +105,8 @@ MainWindow::MainWindow(QWidget *parent)
   // Watchdog Timer events
   connect(&stillAliveTimer, SIGNAL(timeout()), this, SLOT(onStillAliveTimerTimeout()));
   connect(&watchDogTimer,   SIGNAL(timeout()), this, SLOT(onWatchDogTimerTimeout()));
+
+  connect(&getDepthTimer,   SIGNAL(timeout()), this, SLOT(onGetDepthTimerTimeout()));
 
   stillAliveTimer.start(stillAliveTime);
 }
@@ -129,11 +133,23 @@ void
 MainWindow::onStillAliveTimerTimeout() {
   if(tcpClient.isOpen()) {
     message.clear();
-    message.append(char(126));
-    message.append(char(126));
+    message.append(char(StillAlive));
+    message.append(char(StillAlive));
     tcpClient.write(message);
   }
 }
+
+
+void
+MainWindow::onResetOrientation() {
+    if(tcpClient.isOpen()) {
+      message.clear();
+      message.append(char(SetOrientation));
+      message.append(char(SetOrientation));
+      tcpClient.write(message);
+    }
+}
+
 
 
 void
@@ -148,6 +164,17 @@ MainWindow::onWatchDogTimerTimeout() {
 void
 MainWindow::updateWidgets() {
   pFrontWidget->updateGL();
+}
+
+
+void
+MainWindow::onGetDepthTimerTimeout() {
+  if(tcpClient.isOpen()) {
+    message.clear();
+    message.append(char(depthSensor));
+    message.append(char(depthSensor));
+    tcpClient.write(message);
+  }
 }
 
 
@@ -171,8 +198,6 @@ MainWindow::initWidgets() {
 
   pFrontWidget->setShimmerBoxes(&boxes);
   pFrontWidget->setFixedSize(widgetSize);
-
-//  updateWidgets();
 }
 
 
@@ -198,6 +223,12 @@ MainWindow::initLayout() {
   pPitch       = new QDial();
   pPitch->setRange(-15, 15);
 
+  pDepth       = new QSlider();
+  pDepth->setRange(-10, 5000);
+  pDepth->setInvertedAppearance(true);
+
+  pDepthEdit            = new QLineEdit("0", this);
+
   pEditHostName         = new QLineEdit("192.168.1.123", this);
   pButtonConnect        = new QPushButton("Connect", this);
   pCheckInflate         = new QCheckBox("Inflate");
@@ -211,9 +242,15 @@ MainWindow::initLayout() {
   pThrustersRowLayout->addWidget(pUpDown,    0, Qt::AlignCenter);
   pThrustersRowLayout->addWidget(pPitch,     0, Qt::AlignCenter);
 
+  pDepthRowLayout = new QHBoxLayout;
+  pDepthRowLayout->addWidget(pDepth,    0, Qt::AlignCenter);
+  pDepthRowLayout->addWidget(pDepthEdit,    0, Qt::AlignCenter);
+
   pAngleRow->addLayout(pSpeedRowLayout);
   pAngleRow->addSpacing(10);
   pAngleRow->addLayout(pThrustersRowLayout);
+  pAngleRow->addSpacing(10);
+  pAngleRow->addLayout(pDepthRowLayout);
   pAngleRow->addSpacing(10);
   pAngleRow->addWidget(pCheckInflate, 0, Qt::AlignCenter);
   pAngleRow->addWidget(pCheckDeflate, 0, Qt::AlignCenter);
@@ -252,12 +289,11 @@ MainWindow::initLayout() {
   pMainLayout->addLayout(pLeftLayout);
   pMainLayout->addLayout(pGLBoxLayout);
   setLayout(pMainLayout);
-
 }
 
 
 void
-MainWindow::connectToClient() {
+MainWindow::onConnectToClient() {
   if(pButtonConnect->text() == tr("Connect")) {
     pButtonConnect->setEnabled(false);
     pEditHostName->setEnabled(false);
@@ -282,7 +318,8 @@ MainWindow::handleLookup(QHostInfo hostInfo) {
         delete pVlcMedia;
         pVlcMedia = NULL;
       }
-      sVideoURL = QString("http://") + hostInfo.hostName() + QString(":8080/?action=stream");
+//      sVideoURL = QString("http://") + hostInfo.hostName() + QString(":8080/?action=stream");
+      sVideoURL = QString("http://192.168.1.124:8080/?action=stream");
       pVlcMedia = new VlcMedia(sVideoURL, pVlcInstance);
       pVlcPlayer->open(pVlcMedia);
 #endif
@@ -313,10 +350,12 @@ MainWindow::serverConnected() {
   console.appendPlainText("Connected");
   pButtonConnect->setText("Disconnect");
   pButtonConnect->setEnabled(true);
+  pButtonResetOrientation->setEnabled(true);
 #ifdef Q_OS_LINUX
   pButtonRecording->setEnabled(true);
 #endif
   watchDogTimer.start(watchDogTime);
+  getDepthTimer.start(getDepthTime);
 }
 
 
@@ -329,8 +368,10 @@ MainWindow::serverDisconnected() {
   pVlcPlayer->stop();
 #endif
   pButtonRecording->setEnabled(false);
+  pButtonResetOrientation->setEnabled(false);
   pButtonRecording->setText("StartRec");
   watchDogTimer.stop();
+  getDepthTimer.stop();
 }
 
 
@@ -374,6 +415,14 @@ MainWindow::executeCommand(QString command) {
         updateWidgets();
       }
     }
+
+  } else if(command.contains(QString("depth"))) {
+      QStringList tokens = command.split(' ');
+      tokens.removeFirst();
+      qDebug() << "Depth= " << tokens.at(0).toInt();
+      pDepth->setValue(tokens.at(0).toInt());
+      pDepthEdit->setText(tokens.at(0));
+
   } else if(command.contains(QString("alive"))) {
         watchDogTimer.start(watchDogTime);
   }
@@ -382,7 +431,7 @@ MainWindow::executeCommand(QString command) {
 
 int
 MainWindow::start() {
-  // Ensure that it was found and that we can use it
+  // Ensure that the joystick was found and that we can use it
   if (!pJoystick->isFound()) {
     console.appendPlainText("Joystick open failed.");
     return joystickNotFoundError;

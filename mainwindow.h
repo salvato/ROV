@@ -53,18 +53,24 @@ public:
   static const int noError = -1;
   static const int joystickNotFoundError = -1;
 
-  static const int upDownAxis    = 0;
-  static const int pitchAxis     = 1;
-  static const int LeftRightAxis = 2;
-  static const int SpeedAxis     = 3;
-  static const int RollAxis      = 4;
+  static const int upDownAxis     =   0;
+  static const int pitchAxis      =   1;
+  static const int LeftRightAxis  =   2;
+  static const int SpeedAxis      =   3;
+  static const int RollAxis       =   4;
 
-  static const int InflateButton = 11;
-  static const int DeflateButton = 9;
+  static const int DeflateButton  =   9;
+  static const int InflateButton  =  11;
+
+  static const int depthSensor    =  81;
+
+  static const int SetOrientation = 125;
+  static const int StillAlive     = 126;
 
 public slots:
   void onJoystickMessage(JoystickEvent* pEvent);
-  void connectToClient();
+  void onConnectToClient();
+  void onResetOrientation();
   void handleLookup(QHostInfo hostInfo);
   void displayError(QAbstractSocket::SocketError socketError);
   void serverConnected();
@@ -74,6 +80,7 @@ public slots:
   void onStillAliveTimerTimeout();
   void onWatchDogTimerTimeout();
   void startSopRecording();
+  void onGetDepthTimerTimeout();
 
 signals:
   void operate();
@@ -92,7 +99,9 @@ private:
   QDial*   pDirection;
   QSlider* pUpDown;
   QDial*   pPitch;
+  QSlider* pDepth;
 
+  QLineEdit*   pDepthEdit;
   QLineEdit*   pEditHostName;
   QPushButton* pButtonConnect;
 
@@ -105,6 +114,7 @@ private:
 
   QHBoxLayout* pSpeedRowLayout;
   QHBoxLayout* pThrustersRowLayout;
+  QHBoxLayout* pDepthRowLayout;
 
   QVBoxLayout* pAngleRow;
   QHBoxLayout* pButtonRow;
@@ -139,8 +149,10 @@ private:
   QSize           widgetSize;
   QTimer          stillAliveTimer;
   QTimer          watchDogTimer;
+  QTimer          getDepthTimer;
   int             stillAliveTime;
   int             watchDogTime;
+  int             getDepthTime;
 };
 
 #endif // MAINWINDOW_H
