@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
   , widgetSize(QSize(440, 330))
   , stillAliveTime(300)// in ms
   , watchDogTime(30000)
-  , getDepthTime(300)
+  , getDepthTime(500)
 {
   // Create an instance of Joystick
   pJoystick = new Joystick("/dev/input/js0");
@@ -67,7 +67,7 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef Q_OS_LINUX
   // The following is mandatory for using VLC-Qt and all its other classes.
   QStringList arguments = VlcCommon::args();
-  arguments.append(QString("--network-caching=200"));
+  arguments.append(QString("--network-caching=0"));
 
   pVlcInstance = new VlcInstance(arguments, this);
 //  pVlcInstance->setLogLevel(Vlc::DebugLevel);
