@@ -73,9 +73,9 @@ public slots:
   void onResetOrientation();
   void handleLookup(QHostInfo hostInfo);
   void displayError(QAbstractSocket::SocketError socketError);
-  void serverConnected();
-  void serverDisconnected();
-  void newDataAvailable();
+  void onServerConnected();
+  void onServerDisconnected();
+  void onNewDataAvailable();
   void updateWidgets();
   void onStillAliveTimerTimeout();
   void onWatchDogTimerTimeout();

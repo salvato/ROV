@@ -97,9 +97,9 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 
   // Network events
-  connect(&tcpClient, SIGNAL(connected()), this, SLOT(serverConnected()));
-  connect(&tcpClient, SIGNAL(disconnected()), this, SLOT(serverDisconnected()));
-  connect(&tcpClient, SIGNAL(readyRead()), this, SLOT(newDataAvailable()));
+  connect(&tcpClient, SIGNAL(connected()), this, SLOT(onServerConnected()));
+  connect(&tcpClient, SIGNAL(disconnected()), this, SLOT(onServerDisconnected()));
+  connect(&tcpClient, SIGNAL(readyRead()), this, SLOT(onNewDataAvailable()));
   connect(&tcpClient, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(displayError(QAbstractSocket::SocketError)));
 
   // Watchdog Timer events
@@ -346,7 +346,7 @@ MainWindow::displayError(QAbstractSocket::SocketError socketError) {
 
 
 void
-MainWindow::serverConnected() {
+MainWindow::onServerConnected() {
   console.appendPlainText("Connected");
   pButtonConnect->setText("Disconnect");
   pButtonConnect->setEnabled(true);
@@ -360,12 +360,22 @@ MainWindow::serverConnected() {
 
 
 void
-MainWindow::serverDisconnected() {
+MainWindow::onServerDisconnected() {
   console.appendPlainText("Disconnected");
   pButtonConnect->setText("Connect");
   pEditHostName->setEnabled(true);
 #ifdef Q_OS_LINUX
   pVlcPlayer->stop();
+  if(pVlcMedia) {
+    delete pVlcMedia;
+    pVlcMedia = NULL;
+  }
+  QStringList arguments = VlcCommon::args();
+  arguments.append(QString("--network-caching=200"));
+  VlcInstance* pNewVlcInstance = new VlcInstance(arguments, this);
+  VlcMediaPlayer* pNewVlcPlayer = new VlcMediaPlayer(pNewVlcInstance);
+  pVlcWidgetVideo->setMediaPlayer(pNewVlcPlayer);
+  pNewVlcPlayer->setVideoWidget(pVlcWidgetVideo);
 #endif
   pButtonRecording->setEnabled(false);
   pButtonResetOrientation->setEnabled(false);
@@ -376,7 +386,7 @@ MainWindow::serverDisconnected() {
 
 
 void
-MainWindow::newDataAvailable() {
+MainWindow::onNewDataAvailable() {
   receivedCommand += tcpClient.readAll();
   QString sNewCommand;
   int iPos;
