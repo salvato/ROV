@@ -429,9 +429,12 @@ MainWindow::executeCommand(QString command) {
   } else if(command.contains(QString("depth"))) {
       QStringList tokens = command.split(' ');
       tokens.removeFirst();
-      qDebug() << "Depth= " << tokens.at(0).toInt();
+      double depth = tokens.at(0).toInt()/100.0;// Now in meters
+//      qDebug() << "Depth= " << depth;
       pDepth->setValue(tokens.at(0).toInt());
-      pDepthEdit->setText(tokens.at(0));
+      QString sDepth;
+      sDepth.sprintf("%.2f", depth);
+      pDepthEdit->setText(sDepth);
 
   } else if(command.contains(QString("alive"))) {
         watchDogTimer.start(watchDogTime);
