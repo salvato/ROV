@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>uvUnwrapROV_2.png</file>
+        <file>uvUnwrapROV_2.jpg</file>
     </qresource>
 </RCC>
