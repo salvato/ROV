@@ -48,7 +48,7 @@
 //#include "text.h"
 #include "shimmer3box.h"
 
-#define NO_MOUSE
+//#define NO_MOUSE
 
 GLWidget::GLWidget(CGrCamera* myCamera, QWidget *parent)
   : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)

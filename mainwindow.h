@@ -13,7 +13,6 @@
 
 #include "GrCamera.h"
 
-QT_FORWARD_DECLARE_CLASS(Joystick)
 QT_FORWARD_DECLARE_CLASS(QDial)
 QT_FORWARD_DECLARE_CLASS(QSlider)
 QT_FORWARD_DECLARE_CLASS(QLineEdit)
@@ -26,12 +25,6 @@ QT_FORWARD_DECLARE_CLASS(QCheckBox)
 QT_FORWARD_DECLARE_CLASS(Shimmer3Box)
 QT_FORWARD_DECLARE_CLASS(GLWidget)
 
-#ifdef Q_OS_LINUX
-  QT_FORWARD_DECLARE_CLASS(VlcInstance)
-  QT_FORWARD_DECLARE_CLASS(VlcMedia)
-  QT_FORWARD_DECLARE_CLASS(VlcMediaPlayer)
-  QT_FORWARD_DECLARE_CLASS(VlcWidgetVideo)
-#endif
 
 class MainWindow : public QWidget
 {
@@ -68,7 +61,6 @@ public:
   static const int StillAlive     = 126;
 
 public slots:
-  void onJoystickMessage(JoystickEvent* pEvent);
   void onConnectToClient();
   void onResetOrientation();
   void handleLookup(QHostInfo hostInfo);
@@ -79,7 +71,6 @@ public slots:
   void updateWidgets();
   void onStillAliveTimerTimeout();
   void onWatchDogTimerTimeout();
-  void startSopRecording();
   void onGetDepthTimerTimeout();
 
 signals:
@@ -94,27 +85,11 @@ private:
   int bytesReceived;
 
   QPlainTextEdit console;
-
-  QSlider* pSpeed;
-  QDial*   pDirection;
-  QSlider* pUpDown;
-  QDial*   pPitch;
-  QSlider* pDepth;
-
-  QLineEdit*   pDepthEdit;
   QLineEdit*   pEditHostName;
   QPushButton* pButtonConnect;
 
-  QPushButton*  pButtonRecording;
   QPushButton*  pButtonResetOrientation;
   QPushButton*  pButtonSwitchOff;
-
-  QCheckBox*   pCheckInflate;
-  QCheckBox*   pCheckDeflate;
-
-  QHBoxLayout* pSpeedRowLayout;
-  QHBoxLayout* pThrustersRowLayout;
-  QHBoxLayout* pDepthRowLayout;
 
   QVBoxLayout* pAngleRow;
   QHBoxLayout* pButtonRow;
@@ -126,25 +101,12 @@ private:
 
   QHBoxLayout* pMainLayout;
 
-  JoystickEvent* pJoystickEvent;
-  Joystick* pJoystick;
-
-  QThread joystickThread;
-
   QByteArray message;
   QString receivedCommand;
 
   CGrCamera     camera;
   GLWidget*     pFrontWidget;
   QVector<Shimmer3Box*> boxes; // The graphical objects
-
-#ifdef Q_OS_LINUX
-  VlcInstance*    pVlcInstance;
-  VlcMedia*       pVlcMedia;
-  VlcMediaPlayer* pVlcPlayer;
-  VlcWidgetVideo* pVlcWidgetVideo;
-  QString         sVideoURL;
-#endif
 
   QSize           widgetSize;
   QTimer          stillAliveTimer;
