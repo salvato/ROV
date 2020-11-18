@@ -2,5 +2,9 @@
     <qresource prefix="/">
         <file>uvUnwrapROV_2.png</file>
         <file>uvUnwrapROV_2.jpg</file>
+        <file>Cappella/CAPPELLA_SALVATO 3D.mtl</file>
+        <file>Cappella/FREE-G~1.JPG</file>
+        <file>Cappella/PAVIME~1.JPG</file>
+        <file>Cappella/Pietra.jpg</file>
     </qresource>
 </RCC>

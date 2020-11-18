@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>ROV_2.obj</file>
+        <file>Cappella/CAPPELLA_SALVATO 3D.obj</file>
     </qresource>
 </RCC>

@@ -47,7 +47,7 @@
 
 
 GeometryEngine::GeometryEngine()
-    : objPath(":/ROV_2.obj")
+    : objPath(":/Cappella/CAPPELLA_SALVATO 3D.obj")
 {
 }
 
@@ -91,7 +91,9 @@ GeometryEngine::loadROVobj(QString path,
             string = QString(line.mid(3));
             stringVals = string.split(" ");
             if(stringVals.size() != 2) {
-                qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+                qDebug() << line;
+                qDebug() << "(VT) File can't be read by our simple parser:";
+                qDebug() << "Try exporting with other options";
                 return false;
             }
             x = stringVals.at(0).toFloat();
@@ -103,7 +105,9 @@ GeometryEngine::loadROVobj(QString path,
             string = QString(line.mid(3));
             stringVals = string.split(" ");
             if(stringVals.size() != 3) {
-                qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+                qDebug() << line;
+                qDebug() << "(VN) File can't be read by our simple parser:";
+                qDebug() << "Try exporting with other options";
                 return false;
             }
             x = stringVals.at(0).toFloat();
@@ -116,7 +120,9 @@ GeometryEngine::loadROVobj(QString path,
             string = QString(line.mid(2));
             stringVals = string.split(" ");
             if(stringVals.size() != 3) {
-                qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+                qDebug() << line;
+                qDebug() << "(V) File can't be read by our simple parser:";
+                qDebug() << "Try exporting with other options";
                 return false;
             }
             x = stringVals.at(0).toFloat();
@@ -135,13 +141,17 @@ GeometryEngine::loadROVobj(QString path,
             string = QString(line.mid(2));
             stringTriples = string.split(" ");
             if(stringTriples.size() != 3) {
-                qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+                qDebug() << line;
+                qDebug() << "(F) File can't be read by our simple parser:";
+                qDebug() << "Try exporting with other options";
                 return false;
             }
             for(int i=0; i<3; i++) {
                 stringVals = stringTriples.at(i).split("/");
                 if(stringVals.size() != 3) {
-                    qDebug() << "File can't be read by our simple parser : (Try exporting with other options\n";
+                    qDebug() << line;
+                    qDebug() << "(F2) File can't be read by our simple parser:";
+                    qDebug() << "Try exporting with other options";
                     return false;
                 }
                 vertexIndices.append(stringVals.at(0).toFloat());
